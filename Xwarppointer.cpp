@@ -2,7 +2,7 @@
 //g++ -o MouseMove Xwarppointer.cpp -I/usr/include/ -lX11
 //need libx11-dev installed
 #include <stdio.h>
-#include <unistd.h>
+#include <iostream>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -59,7 +59,7 @@ void mouseClick(int button)
 
 int main(int argc,char * argv[]) {
   int i=0;
-  if (argc>3)
+  if (argc>2)
     {
   int x , y;
   x=atoi(argv[1]);
@@ -69,7 +69,7 @@ int main(int argc,char * argv[]) {
 
   XWarpPointer(display, None, root, 0, 0, 0, 0, x, y);
 
-  mouseClick(Button1);
+  //  mouseClick(Button1);
   XFlush(display);
 
 
