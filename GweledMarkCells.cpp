@@ -31,19 +31,25 @@ int main(int argc,char **argv)
   int halfcellpx,wholecellpx;
   PID=GetWindowPID();//get PID of window for Gweled
   gameboardsize=GetGameBoardSize();
+
+  //turn this into a function
   switch (gameboardsize)
     {
     case 0:
       wholecellpx=SMALL_CELL_SIZE;
+      std::cout<<"Small";
       break;
     case 1:
       wholecellpx=MEDIUM_CELL_SIZE;
+      std::cout<<"Medium";
       break;
     case 2:
       wholecellpx=LARGE_CELL_SIZE;
+      std::cout<<"Large";
       break;
     default:
       wholecellpx=SMALL_CELL_SIZE;
+      std::cout<<"Default Small";
       break;
     }
   halfcellpx=wholecellpx/2;
@@ -55,7 +61,7 @@ int main(int argc,char **argv)
   
   try { 
     image.read(PID);
-    image.crop( Geometry(wholecellpx*CELL_WIDTH,wholecellpx*CELL_WIDTH, 0, 27) ); //the menu bar is a constant 27 pixels tall no matter the size of the game board.
+    image.crop( Geometry(wholecellpx*CELL_WIDTH,wholecellpx*CELL_WIDTH, 0, 25) ); //the menu bar is a constant 27 pixels tall no matter the size of the game board. 
 
     width=image.columns();
     height=image.rows();
@@ -116,8 +122,8 @@ int main(int argc,char **argv)
 		temp='R';
 		break;
 	      default:
-		//std::cout<<"*";
-		std::cout<<int(color.redQuantum())<<","<<int(color.greenQuantum())<<","<<int(color.blueQuantum())<<std::endl;
+		std::cout<<"*";
+		//std::cout<<int(color.redQuantum())<<","<<int(color.greenQuantum())<<","<<int(color.blueQuantum())<<std::endl;
 	      }
 	    //    std::cout<<temp;
 	    Board[boardcounterX][boardcounterY]=temp;
@@ -194,7 +200,7 @@ string GetWindowPID()
   string PID="x:";
   char temp[BUFFERLENGTH];
   FILE *in;
-  if ((in = popen("xwininfo -root -tree | grep gweled | grep 256x323 | awk '{ print $1 }'","r")))
+  if ((in = popen("xwininfo -root -tree | grep gweled | grep 269x319 | awk '{ print $1 }'","r")))
     { 
 
       while (fgets(temp, sizeof(temp), in)!=NULL)
@@ -222,17 +228,17 @@ int GetGameBoardSize()
 	  info.append(buffer); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
 	}
       pclose(in);
-      if (info.rfind("256x323")!=string::npos)
+      if (info.rfind("269x319")!=string::npos)  //this is diff, was 256x323 
 	{
 	  std::cout<<"Small Board"<<std::endl;
 	  return 0;
 	}
-      else if (info.rfind("384x451")!=string::npos)
+      else if (info.rfind("384x447")!=string::npos) //on arch in virtualbox 4 px smaller in y dimension 
 	{
 	  std::cout<<"Medium Board"<<std::endl;
 	  return 1;
 	}
-      else if (info.rfind("512x579")!=string::npos)
+      else if (info.rfind("512x575")!=string::npos) //512x575 on arch in virtualbox
 	{
 	  std::cout<<"Large Board"<<std::endl;
 	  return 2;
