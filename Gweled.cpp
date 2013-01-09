@@ -45,7 +45,7 @@ using namespace Magick;
 #define WINDOWCOORDSENTINEL -99
 
 #define MENUBAROFFSET 27  // 25 on icewm on arch, 27px on icewm for ubuntu. hmmm that sux... This is the height in pixels of the menu in the OS you are running. If you run ./GweledMarkCells and open the image in Gimp, find the number of pixels from the top to the first cell (don't count the border). Using GweledMarkCells should write to GweledMediumMarked.png. In Gimp the menu won't be there. It'll be transparent pixels. Count those and there might be a 1 px border color that needs to be counted as well. 
-
+//TODO ::: for all these different configurations, have a command line switch or json/xml file that can be ingested to set these variables. that way it doesn't require a recompile for each system. 
 
 struct CoordPair
 {  // could also achieve same results of a coord and direction with an x,y pair and a N,E,S,W direction
