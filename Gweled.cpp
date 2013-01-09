@@ -44,6 +44,9 @@ using namespace Magick;
 #define SENTINEL 'X'
 #define WINDOWCOORDSENTINEL -99
 
+#define MENUBAROFFSET 27  // 25 on icewm on arch, 27px on icewm for ubuntu. hmmm that sux... This is the height in pixels of the menu in the OS you are running. If you run ./GweledMarkCells and open the image in Gimp, find the number of pixels from the top to the first cell (don't count the border). Using GweledMarkCells should write to GweledMediumMarked.png. In Gimp the menu won't be there. It'll be transparent pixels. Count those and there might be a 1 px border color that needs to be counted as well. 
+
+
 struct CoordPair
 {  // could also achieve same results of a coord and direction with an x,y pair and a N,E,S,W direction
   int x1,x2,y1,y2;
@@ -166,7 +169,7 @@ int main(int argc,char **argv)
       bool GameOverFlag=false;
       try { 
 	image.read(PID);
-	image.crop( Geometry(wholecellpx*CELL_WIDTH,wholecellpx*CELL_WIDTH, 0, 25) ); //the menu bar is a constant 27 pixels tall no matter the size of the game board.
+	image.crop( Geometry(wholecellpx*CELL_WIDTH,wholecellpx*CELL_WIDTH, 0, MENUBAROFFSET) ); //the menu bar is a constant 27 pixels tall no matter the size of the game board. it is 25px tall in icewm on arch on the cameron laptop.
 
 	width=image.columns();
 	height=image.rows();
@@ -1486,21 +1489,21 @@ int GetGameBoardSize()
 	  info.append(buffer); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
 	}
       pclose(in);
-      if (info.rfind("269x319")!=string::npos) //was 256x323
+      if (info.rfind("269x319")!=string::npos||info.rfind("256x323")!=string::npos) //was 256x323 (ubuntu icewm) 269x319 (arch icewm)
 	{
 #if DEBUGPRINT_0
 	  std::cout<<"Small Board"<<std::endl;
 #endif
 	  returnval= 0;
 	}
-      else if (info.rfind("384x447")!=string::npos) //was 384x451
+      else if (info.rfind("384x447")!=string::npos||info.rfind("384x451")!=string::npos) //was 384x451(ubuntu icewm) 383x447(arch icewm)
 	{
 #if DEBUGPRINT_0
 	  std::cout<<"Medium Board"<<std::endl;
 #endif
 	  returnval= 1;
 	}
-      else if (info.rfind("512x575")!=string::npos) //was 512x579
+      else if (info.rfind("512x575")!=string::npos||info.rfind("512x579")!=string::npos) //was 512x579(ubuntu icewm) 512x575 (arch icewm)
 	{
 #if DEBUGPRINT_0
 	  std::cout<<"Large Board"<<std::endl;
