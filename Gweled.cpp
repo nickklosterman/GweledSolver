@@ -10,8 +10,9 @@
 // keep counter of number of moves and keep track of score.
 // use enum to make board memory size smaller
 // if Gweled isn't running then start it up. (check for process or window)
-// -xwininfo chokes if there isn't a window named Gweled runing. I need to check for this.
-
+// -xwininfo chokes if there isn't a window named Gweled running. I need to check for this.
+// an alternative approach to 'smarter' gameplay would be to have patterns for the larger series set up.
+//use machine learning to have the computer learn how to play the game and come up with an optimal strategy.
 //need an array copy constructor since will need separate copy of game board for subsequent calls
 //-->it looks like it might be easiest to just drop using arrays and use vectors. Then need to convert all [x][y] --> [x+y*CELLWIDTH]
 
@@ -44,7 +45,7 @@ using namespace Magick;
 #define SENTINEL 'X'
 #define WINDOWCOORDSENTINEL -99
 
-#define MENUBAROFFSET 27  // 25 on icewm on arch, 27px on icewm for ubuntu. hmmm that sux... This is the height in pixels of the menu in the OS you are running. If you run ./GweledMarkCells and open the image in Gimp, find the number of pixels from the top to the first cell (don't count the border). Using GweledMarkCells should write to GweledMediumMarked.png. In Gimp the menu won't be there. It'll be transparent pixels. Count those and there might be a 1 px border color that needs to be counted as well. 
+#define MENUBAROFFSET 25  // 25 on icewm on arch, 27px on icewm for ubuntu. hmmm that sux... This is the height in pixels of the menu in the OS you are running. If you run ./GweledMarkCells and open the image in Gimp, find the number of pixels from the top to the first cell (don't count the border). Using GweledMarkCells should write to GweledMediumMarked.png. In Gimp the menu won't be there. It'll be transparent pixels. Count those and there might be a 1 px border color that needs to be counted as well. 
 //TODO ::: for all these different configurations, have a command line switch or json/xml file that can be ingested to set these variables. that way it doesn't require a recompile for each system. 
 
 struct CoordPair
@@ -102,13 +103,17 @@ XKeyEvent createKeyEvent(Display , Window, Window , bool ,int , int);
 		   176,  2,176 purple triangle
 		   213, 91,110 red rounded square
 		   193, 26 ,25 red rounded square
+0,186,246 blue diamond
+154,154, 0 whie round bauble
 		*/
 		//the med and large boards have some slightly diff values for some colors
 		/* med board
 		   214, 89,107 red rounded square
 		   5,  152,  1 green rounded square 
 		   195, 34, 35 red rounded square 
-		   0,  126,197 blue diamond*/
+		   0,  126,197 blue diamond
+209, 52,  0 ?red rounded square not sure if this is needed. could possilby be that it was a color caught when a new gem was falling.
+*/
 
 		/*large board
 		  0,  184,245 blue diamond
@@ -192,6 +197,7 @@ int main(int argc,char **argv)
 	
 		switch (int(color.greenQuantum())) //key off the green value to determine jewel
 		  {
+		  case 186:
 		  case 185:
 		  case 184:
 		  case 132:
@@ -212,6 +218,7 @@ int main(int argc,char **argv)
 #endif
 		    temp='O';
 		    break;
+
 		  case 153:
 		  case 152:
 		  case 150:
@@ -228,8 +235,10 @@ int main(int argc,char **argv)
 
 		    temp='Y';
 		    break;
+
 		  case 224:
 		  case 182:
+		  case 154:
 #if DEBUGPRINT_0
 		    std::cout<<"W";
 #endif
