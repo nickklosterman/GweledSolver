@@ -70,6 +70,7 @@ CoordPair AnalyzeBoardSingleMatch( char [CELL_WIDTH][CELL_HEIGHT] );
 void PrintMove(CoordPair);
 string GetWindowPID( /*int*/ );
 CoordPair GetWindowCoords(int );
+bool CheckCoordsForSentinel(XYPair );
 bool GameOver();
 
 int GetGameBoardSize();
@@ -91,38 +92,40 @@ int TabFakeKeyPress();
 int SpaceFakeKeyPress();
 XKeyEvent createKeyEvent(Display , Window, Window , bool ,int , int);
 
-		/* small board
-		   0,185,245 blue diamond
-		   0,121,193 blue diamond
-		   175, 63,  5 orange hexagon 
-		   5  ,153,  1 green rounded square
-		   145,145,  3 yellow square
-		   224,224,224 white round bauble
-		   182,182,182 blue diamond
-		   175,  0,174 purple triangle
-		   176,  2,176 purple triangle
-		   213, 91,110 red rounded square
-		   193, 26 ,25 red rounded square
-0,186,246 blue diamond
-154,154, 0 whie round bauble
-		*/
-		//the med and large boards have some slightly diff values for some colors
-		/* med board
-		   214, 89,107 red rounded square
-		   5,  152,  1 green rounded square 
-		   195, 34, 35 red rounded square 
-		   0,  126,197 blue diamond
-209, 52,  0 ?red rounded square not sure if this is needed. could possilby be that it was a color caught when a new gem was falling.
+/* small board
+   0,185,245 blue diamond
+   0,121,193 blue diamond
+   175, 63,  5 orange hexagon 
+   5  ,153,  1 green rounded square
+   145,145,  3 yellow square
+   224,224,224 white round bauble
+   182,182,182 blue diamond
+   175,  0,174 purple triangle
+   176,  2,176 purple triangle
+   213, 91,110 red rounded square
+   193, 26 ,25 red rounded square
+   0,186,246 blue diamond
+   154,154, 0 whie round bauble
+*/
+//the med and large boards have some slightly diff values for some colors
+/* med board
+   214, 89,107 red rounded square
+   5,  152,  1 green rounded square 
+   195, 34, 35 red rounded square 
+   0,  126,197 blue diamond
+   0,  181,241 blue diamond
+   209, 52,  0 ?red rounded square not sure if this is needed. could possilby be that it was a color caught when a new gem was falling.
+   176,  1,175 purple triangle
 */
 
-		/*large board
-		  0,  184,245 blue diamond
-		  0,  131,201 blue diamond
-		  213, 86,104 red rounded square
-		  198, 42, 46 red rounded square
-		  4,  152,  1 green rounded square
-		  185,185,185 white round bauble
-		*/
+/*large board
+  0,  184,245 blue diamond
+  0,  131,201 blue diamond
+  213, 86,104 red rounded square
+  198, 42, 46 red rounded square
+  4,  152,  1 green rounded square
+  185,185,185 white round bauble
+*/
 
 int main(int argc,char **argv) 
 { 
@@ -169,9 +172,10 @@ int main(int argc,char **argv)
   // doesn't render the image object useless. 
 
   Image image;
-  while (true)
+  bool GameOverFlag=false;
+  while (!GameOverFlag) //set me to true for an inf loop once we figure out how to make the game play ad nauseum without stopping for clearing game over/scores etc.
     {
-      bool GameOverFlag=false;
+      
       try { 
 	image.read(PID);
 	image.crop( Geometry(wholecellpx*CELL_WIDTH,wholecellpx*CELL_WIDTH, 0, MENUBAROFFSET) ); //the menu bar is a constant 27 pixels tall no matter the size of the game board. it is 25px tall in icewm on arch on the cameron laptop.
@@ -200,6 +204,7 @@ int main(int argc,char **argv)
 		  case 186:
 		  case 185:
 		  case 184:
+		  case 181:
 		  case 132:
 		  case 131:
 		  case 126:
@@ -246,11 +251,13 @@ int main(int argc,char **argv)
 		    temp='W';
 		    break;
 		  case 0:
+		  case 1:
 		  case 2:
 #if DEBUGPRINT_0
 		    std::cout<<"P";
 		    if ( int(color.redQuantum())==int(color.greenQuantum()) && int(color.greenQuantum())==int(color.blueQuantum()) && int(color.blueQuantum())==0 )
 		      {
+			std::cout<<"P gamover flag set to true";
 			GameOverFlag=true; //now need to check if its the game over or high score window that is covering up the gameboard and click appropriately or just see if its neither and just being obscured
 		      }
 		    //if covered by the game over window then the pixels of the actual game board are interpreted as 0,0,0
@@ -282,8 +289,8 @@ int main(int argc,char **argv)
 
 		if (!GameOverFlag)
 		  {
-		//    std::cout<<temp;
-		Board[boardcounterX][boardcounterY]=temp;
+		    //    std::cout<<temp;
+		    Board[boardcounterX][boardcounterY]=temp;
 		  }
 		Board2[boardcounterX+boardcounterY*CELL_WIDTH]=temp;
 
@@ -310,19 +317,17 @@ int main(int argc,char **argv)
 	// Check to see if the game has ended 
 	if (!GameOver())
 	  {
-
-
-	//	if (Move==PreviousMove)
-
-	Move=AnalyzeBoardSingleMatch( Board );
-	PrintMove(Move);
-	//	PrintXYPair(screen_coords);
-	PerformMove(Move);
+	    //	if (Move==PreviousMove)
+	    Move=AnalyzeBoardSingleMatch( Board );
+	    PrintMove(Move);
+	    //	PrintXYPair(screen_coords);
+	    PerformMove(Move);
 	  }
 	else
 	  {
 	    std::cout<<"G.O. need to restart"<<std::endl;
 	    int code;
+	    //attempt to dismiss the dialog and start a new game.
 	    code=TabFakeKeyPress();
 	    code=TabFakeKeyPress();
 	    code=TabFakeKeyPress();
@@ -364,7 +369,7 @@ int main(int argc,char **argv)
 #if DEBUGPRINT_3
       std::cout<<"---------------------"<<std::endl;
 #endif 
-   }//end inf while loop
+    }//end inf while loop
   return 0; 
 }
 
@@ -378,48 +383,48 @@ void PrintBoard(const T* Board,int W,int H)//[CELL_WIDTH][CELL_HEIGHT])
 	std::cout<<std::endl;
     }
   /*
-	for (int y=0;y<H;y++)
-	  {
-	    for (int x=0;x<W;x++)
-	      {
-		std::cout<<Board[x][y];
-	      }
-	    std::cout<<std::endl;
-	  }
+    for (int y=0;y<H;y++)
+    {
+    for (int x=0;x<W;x++)
+    {
+    std::cout<<Board[x][y];
+    }
+    std::cout<<std::endl;
+    }
   */
 }
 
 void ClickForNewGame()
 {
   /*
-xwininfo: Window id: 0x2027964 (has no name)
+    xwininfo: Window id: 0x2027964 (has no name)
 
-  Absolute upper-left X:  2
-  Absolute upper-left Y:  787
-  Relative upper-left X:  0
-  Relative upper-left Y:  0
-  Width: 310
-  Height: 131
-  Depth: 24
-  Visual: 0x21
-  Visual Class: TrueColor
-  Border width: 0
-  Class: InputOutput
-  Colormap: 0x20 (installed)
-  Bit Gravity State: NorthWestGravity
-  Window Gravity State: NorthWestGravity
-  Backing Store State: NotUseful
-  Save Under State: no
-  Map State: IsViewable
-  Override Redirect State: no
-  Corners:  +2+787  -968+787  -968-106  +2-106
-  -geometry 310x131+0+765
-  * /
+    Absolute upper-left X:  2
+    Absolute upper-left Y:  787
+    Relative upper-left X:  0
+    Relative upper-left Y:  0
+    Width: 310
+    Height: 131
+    Depth: 24
+    Visual: 0x21
+    Visual Class: TrueColor
+    Border width: 0
+    Class: InputOutput
+    Colormap: 0x20 (installed)
+    Bit Gravity State: NorthWestGravity
+    Window Gravity State: NorthWestGravity
+    Backing Store State: NotUseful
+    Save Under State: no
+    Map State: IsViewable
+    Override Redirect State: no
+    Corners:  +2+787  -968+787  -968-106  +2-106
+    -geometry 310x131+0+765
+    * /
 
 
 
-  206,87 to 298,118 so center is approx +46,+15 so 252,102
-or press 'N' for new game.
+    206,87 to 298,118 so center is approx +46,+15 so 252,102
+    or press 'N' for new game.
   */
 
   XYPair coords;
@@ -441,79 +446,94 @@ or press 'N' for new game.
 void ClickToRemoveHighScoreNotificationAndStartNewGame()
 {
   /*
-xwininfo: Window id: 0x2055ae0 "Gweled Scores"
+    xwininfo: Window id: 0x2055ae0 "Gweled Scores"
 
-  Absolute upper-left X:  149
-  Absolute upper-left Y:  559
-  Relative upper-left X:  0
-  Relative upper-left Y:  0
-  Width: 274
-  Height: 433
-  Depth: 24
-  Visual: 0x21
-  Visual Class: TrueColor
-  Border width: 0
-  Class: InputOutput
-  Colormap: 0x20 (installed)
-  Bit Gravity State: NorthWestGravity
-  Window Gravity State: NorthWestGravity
-  Backing Store State: NotUseful
-  Save Under State: no
-  Map State: IsViewable
-  Override Redirect State: no
-  Corners:  +149+559  -857+559  -857-32  +149-32
-  -geometry 274x433+143-26
+    Absolute upper-left X:  149
+    Absolute upper-left Y:  559
+    Relative upper-left X:  0
+    Relative upper-left Y:  0
+    Width: 274
+    Height: 433
+    Depth: 24
+    Visual: 0x21
+    Visual Class: TrueColor
+    Border width: 0
+    Class: InputOutput
+    Colormap: 0x20 (installed)
+    Bit Gravity State: NorthWestGravity
+    Window Gravity State: NorthWestGravity
+    Backing Store State: NotUseful
+    Save Under State: no
+    Map State: IsViewable
+    Override Redirect State: no
+    Corners:  +149+559  -857+559  -857-32  +149-32
+    -geometry 274x433+143-26
 
-170,389 to 262,420
+    170,389 to 262,420
 
-*/
+  */
   XYPair coords;
   coords=GetGweledScoresWindowOriginCoordinates();
 
   std::cout<<"Restarting Game. High Score Achieved"<<std::endl;
 
 } 
-
+//return true if coords aren't equal to the WINDOWCOORDSENTINEL
+bool CheckCoordsForSentinel(XYPair coords)
+{
+  bool returnflag = false;
+  if (coords.x!=WINDOWCOORDSENTINEL && coords.y!=WINDOWCOORDSENTINEL) 
+    {
+      returnflag= true;
+    }
+  return returnflag;
+}
 bool GameOver()
 {
   //Function determines if the game is over, 
+  bool flag;
 
-  XYPair coords;
-  coords=GetGameOverWindowOriginCoordinates();
-  std::cout<<"G.O coords:";
-  PrintXYPair(coords);
+  /*XYPair*/bool coords=false,coords2=false;
+  coords=CheckCoordsForSentinel(GetGameOverWindowOriginCoordinates());
+  coords2=CheckCoordsForSentinel(GetGweledScoresWindowOriginCoordinates());
+  if (coords)
+    {      std::cout<<"G.O coords";}
+  if(coords2)
+    {      std::cout<<"H.S coords";}
+  /*
   if (coords.x!=WINDOWCOORDSENTINEL && coords.y!=WINDOWCOORDSENTINEL) //this is the
     {
-      std::cout<<"duh";
-      return true;
+      std::cout<<"G.O coords:";
+      PrintXYPair(coords);
+      flag= true;
+      
       std::cout<<"after return statment for G.O.";
     }
-
-
-    coords=GetGweledScoresWindowOriginCoordinates();
-    std::cout<<"H.S. coords:";
-    PrintXYPair(coords);
-    if (coords.x!=WINDOWCOORDSENTINEL && coords.y!=WINDOWCOORDSENTINEL)
-      {
-	return true;
+  //  coords=GetGweledScoresWindowOriginCoordinates();
+  if (coords.x!=WINDOWCOORDSENTINEL && coords.y!=WINDOWCOORDSENTINEL)
+    {
+      std::cout<<"H.S. coords:";
+      PrintXYPair(coords);
+      flag= true;
+      
       std::cout<<"after return statment for H.S.";
-      }
-
-  return false;
-
+    }
+  */
+  //  std::cout<<"coords"<<coords<<"coords2"<<coords2;
+  return (coords||coords2);
 }
 
 void PrintBoardInt(int Board[CELL_WIDTH][CELL_HEIGHT],int W,int H)
 {
 
-	for (int y=0;y<H;y++)
-	  {
-	    for (int x=0;x<W;x++)
-	      {
-		std::cout<<Board[x][y];
-	      }
-	    std::cout<<std::endl;
-	  }
+  for (int y=0;y<H;y++)
+    {
+      for (int x=0;x<W;x++)
+	{
+	  std::cout<<Board[x][y];
+	}
+      std::cout<<std::endl;
+    }
 
 }
 
@@ -521,14 +541,14 @@ void PrintBoardInt(int Board[CELL_WIDTH][CELL_HEIGHT],int W,int H)
 void PrintBoardChar(char Board[CELL_WIDTH][CELL_HEIGHT],int W,int H)
 {
 
-	for (int y=0;y<H;y++)
-	  {
-	    for (int x=0;x<W;x++)
-	      {
-		std::cout<<Board[x][y];
-	      }
-	    std::cout<<std::endl;
-	  }
+  for (int y=0;y<H;y++)
+    {
+      for (int x=0;x<W;x++)
+	{
+	  std::cout<<Board[x][y];
+	}
+      std::cout<<std::endl;
+    }
 
 }
 
@@ -733,7 +753,7 @@ void AnalyzeBoardv2( char A[CELL_WIDTH][CELL_HEIGHT] )
     {
       for (int j=0;j<CELL_HEIGHT;j++)
 	{
-      MovesBoard[i][j]=0;
+	  MovesBoard[i][j]=0;
 	}
     }
 
@@ -792,8 +812,8 @@ void AnalyzeBoardv2( char A[CELL_WIDTH][CELL_HEIGHT] )
 	  /*100
 	    011*/
 
-	      if ( A[x][y]==A[x+1][y+1] && A[x+2][y+1]==A[x][y] )
-		{MovesBoard[x][y+1]++;}//Move.x2=x;Move.y2=y;std::cout<<"6h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";}
+	  if ( A[x][y]==A[x+1][y+1] && A[x+2][y+1]==A[x][y] )
+	    {MovesBoard[x][y+1]++;}//Move.x2=x;Move.y2=y;std::cout<<"6h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";}
 	}
       //End Horizontal cases
       //Start Vertical cases
@@ -912,45 +932,45 @@ CoordPair AnalyzeBoardSingleMatch( char A[CELL_WIDTH][CELL_HEIGHT] )
 	    {Move.x1=x+2;Move.y1=y+1; Move.x2=x+2;Move.y2=y;std::cout<<"8h";return Move;}//		{MovesBoard[x+2][y]++; MovesBoard[x+2][y-1]++;std::cout<<"8h";}
 	  //	    {Move.x1=x+2;Move.y1=y; Move.x2=x+2;Move.y2=y+1;std::cout<<"8h";return Move;}//		{MovesBoard[x+2][y]++; MovesBoard[x+2][y-1]++;std::cout<<"8h";}
 
-  //new 5h
-  //Pattern 5 horizontal
-  /*011
-    100*/
-	      if ( A[x][y+1]==A[x+1][y] && A[x][y+1]==A[x+2][y] )
-		{Move.x1=x;Move.y1=y;Move.x2=x;Move.y2=y+1;std::cout<<"5h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y+1]++;std::cout<<"5h";}
-	      //		{Move.x1=x;Move.y1=y;Move.x2=x;Move.y2=y+1;std::cout<<"5h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y+1]++;std::cout<<"5h";}
+	  //new 5h
+	  //Pattern 5 horizontal
+	  /*011
+	    100*/
+	  if ( A[x][y+1]==A[x+1][y] && A[x][y+1]==A[x+2][y] )
+	    {Move.x1=x;Move.y1=y;Move.x2=x;Move.y2=y+1;std::cout<<"5h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y+1]++;std::cout<<"5h";}
+	  //		{Move.x1=x;Move.y1=y;Move.x2=x;Move.y2=y+1;std::cout<<"5h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y+1]++;std::cout<<"5h";}
 
-	      //new 6h
-  //pattern 6 horizontal
-  /*100
-    011*/
+	  //new 6h
+	  //pattern 6 horizontal
+	  /*100
+	    011*/
 
-	      if ( A[x][y]==A[x+1][y+1] && A[x+2][y+1]==A[x][y] )
-		{Move.x1=x;Move.y1=y+1;Move.x2=x;Move.y2=y;std::cout<<"6h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";}
-	      //		{Move.x1=x;Move.y1=y;Move.x2=x;Move.y2=y+1;std::cout<<"6h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";}
+	  if ( A[x][y]==A[x+1][y+1] && A[x+2][y+1]==A[x][y] )
+	    {Move.x1=x;Move.y1=y+1;Move.x2=x;Move.y2=y;std::cout<<"6h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";}
+	  //		{Move.x1=x;Move.y1=y;Move.x2=x;Move.y2=y+1;std::cout<<"6h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";}
 	}
 	
       /*
-      if (x>0 && x<7)
+	if (x>0 && x<7)
 	{
-	  if (y<7)
-	    {
-	      //Pattern 5 horizontal
-	      / *011
-		100 * /
-	      //	      if ( A[x][y]==A[x+1][y] && A[x-1][y+1]==A[x][y] )		{Move.x1=x-1;Move.y1=y;Move.x2=x-1;Move.y2=y+1;std::cout<<"5h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y+1]++;std::cout<<"5h";}
+	if (y<7)
+	{
+	//Pattern 5 horizontal
+	/ *011
+	100 * /
+	//	      if ( A[x][y]==A[x+1][y] && A[x-1][y+1]==A[x][y] )		{Move.x1=x-1;Move.y1=y;Move.x2=x-1;Move.y2=y+1;std::cout<<"5h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y+1]++;std::cout<<"5h";}
 	    
-	    }
-	  if (y>0)
-	    {
-	      //pattern 6 horizontal
-	      / * 100
-		011* /
-	      //	      if ( A[x][y]==A[x+1][y] && A[x-1][y-1]==A[x][y] )		{Move.x1=x-1;Move.y1=y;Move.x2=x-1;Move.y2=y-1;std::cout<<"6h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";}
-
-	    }
 	}
-*/
+	if (y>0)
+	{
+	//pattern 6 horizontal
+	/ * 100
+	011* /
+	//	      if ( A[x][y]==A[x+1][y] && A[x-1][y-1]==A[x][y] )		{Move.x1=x-1;Move.y1=y;Move.x2=x-1;Move.y2=y-1;std::cout<<"6h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";}
+
+	}
+	}
+      */
       //End Horizontal cases
       //Start Vertical cases
       if (y<5)
@@ -1004,42 +1024,42 @@ CoordPair AnalyzeBoardSingleMatch( char A[CELL_WIDTH][CELL_HEIGHT] )
 
 	} 
       /*
-      if (y>0 && x>0)//(x<7 && y>0 )//&& y<7)
-	    {
-	      //Pattern 5 vertical
-	      / *10
-		01
-		01* /
-	      //redo	      if ( A[x][y]==A[x][y+1] && A[x-1][y-1]==A[x][y] )		{Move.x1=x;Move.y1=y-1; Move.x2=x-1;Move.y2=y-1;std::cout<<"5v";return Move;}//; }		{MovesBoard[x][y-1]++; MovesBoard[x-1][y-1]++;std::cout<<"5v";}
-
-
-	    }
-
-	
-      if (x<7 && y<7 && y>0)
+	if (y>0 && x>0)//(x<7 && y>0 )//&& y<7)
 	{
-	  //pattern 6 vertical
-	  / *01
-	    10
-	    10* /
-	  //redo	  if ( A[x][y]==A[x][y+1] && A[x+1][y-1]==A[x][y] )	    {Move.x1=x;Move.y1=y-1; Move.x2=x+1;Move.y2=y-1;std::cout<<"6v";return Move;}//}	    {MovesBoard[x][y-1]++; MovesBoard[x+1][y-1]++;std::cout<<"6v";}
+	//Pattern 5 vertical
+	/ *10
+	01
+	01* /
+	//redo	      if ( A[x][y]==A[x][y+1] && A[x-1][y-1]==A[x][y] )		{Move.x1=x;Move.y1=y-1; Move.x2=x-1;Move.y2=y-1;std::cout<<"5v";return Move;}//; }		{MovesBoard[x][y-1]++; MovesBoard[x-1][y-1]++;std::cout<<"5v";}
 
 
 	}
 
-      if (x>0&&y<6)
+	
+	if (x<7 && y<7 && y>0)
 	{
-	  //pattern 8 vertical
-	  / *01
-	    01
-	    10* /
-	  //redo	  if ( A[x][y]==A[x][y+1] && A[x-1][y+2]==A[x][y] )	    {Move.x1=x;Move.y1=y+2; Move.x2=x-1;Move.y2=y+2;std::cout<<"8v";return Move;}//}	{MovesBoard[x][y+2]++; MovesBoard[x-1][y+2]++;std::cout<<"8v";}
+	//pattern 6 vertical
+	/ *01
+	10
+	10* /
+	//redo	  if ( A[x][y]==A[x][y+1] && A[x+1][y-1]==A[x][y] )	    {Move.x1=x;Move.y1=y-1; Move.x2=x+1;Move.y2=y-1;std::cout<<"6v";return Move;}//}	    {MovesBoard[x][y-1]++; MovesBoard[x+1][y-1]++;std::cout<<"6v";}
 
-	  //pattern 3 vertical
-	  / *01
-	    10
-	    01* /
-	  //redo	  if ( A[x][y]==A[x][y+2] && A[x-1][y+1]==A[x][y] )	    {Move.x1=x;Move.y1=y+1; Move.x2=x-1;Move.y2=y+1;std::cout<<"3v";return Move;}//}	{MovesBoard[x][y+1]++; MovesBoard[x-1][y+1]++;std::cout<<"3v";}
+
+	}
+
+	if (x>0&&y<6)
+	{
+	//pattern 8 vertical
+	/ *01
+	01
+	10* /
+	//redo	  if ( A[x][y]==A[x][y+1] && A[x-1][y+2]==A[x][y] )	    {Move.x1=x;Move.y1=y+2; Move.x2=x-1;Move.y2=y+2;std::cout<<"8v";return Move;}//}	{MovesBoard[x][y+2]++; MovesBoard[x-1][y+2]++;std::cout<<"8v";}
+
+	//pattern 3 vertical
+	/ *01
+	10
+	01* /
+	//redo	  if ( A[x][y]==A[x][y+2] && A[x-1][y+1]==A[x][y] )	    {Move.x1=x;Move.y1=y+1; Move.x2=x-1;Move.y2=y+1;std::cout<<"3v";return Move;}//}	{MovesBoard[x][y+1]++; MovesBoard[x-1][y+1]++;std::cout<<"3v";}
 
 
 	}*/
@@ -1264,10 +1284,10 @@ CoordPair FindStartStopOfSequence(char A[CELL_WIDTH][CELL_HEIGHT] ,CoordPair mov
 {//given a gameboard with a move performed on it, this function finds the start position and end position of a match
   //the x1,y1 always holds the coord of the position that completes the match.
   CoordPair Seq;
-      Seq.y1=move.y1;//initialize
-      Seq.y2=move.y1;
-      Seq.x1=move.x1;
-      Seq.x2=move.x1;
+  Seq.y1=move.y1;//initialize
+  Seq.y2=move.y1;
+  Seq.x1=move.x1;
+  Seq.x2=move.x1;
 
 
   if (move.x1==move.x2) //vertical match
@@ -1279,10 +1299,10 @@ CoordPair FindStartStopOfSequence(char A[CELL_WIDTH][CELL_HEIGHT] ,CoordPair mov
       while (flag==true)
 	{//find bottom most extent of sequence
 	  if ( move.y1+counter<CELL_HEIGHT && A[x][move.y1+counter]==A[x][move.y1])
-		{
-		  Seq.y1=move.y1+counter;
-		  counter++;
-		}
+	    {
+	      Seq.y1=move.y1+counter;
+	      counter++;
+	    }
 	  else
 	    {flag=false;}
 	}
@@ -1291,10 +1311,10 @@ CoordPair FindStartStopOfSequence(char A[CELL_WIDTH][CELL_HEIGHT] ,CoordPair mov
       while (flag==true)
 	{//find topmost extent of sequence
 	  if ( move.y1+counter>=0 && A[x][move.y1+counter]==A[x][move.y1])
-		{
-		  Seq.y1=move.y1-counter;
-		  counter++;
-		}
+	    {
+	      Seq.y1=move.y1-counter;
+	      counter++;
+	    }
 	  else
 	    {flag=false;}
 	}
@@ -1308,10 +1328,10 @@ CoordPair FindStartStopOfSequence(char A[CELL_WIDTH][CELL_HEIGHT] ,CoordPair mov
       while (flag==true)
 	{ //find right most extent of sequence
 	  if ( move.x1+counter<CELL_WIDTH && A[move.x1+counter][y]==A[move.x1][y])
-		{
-		  Seq.x1=move.x1+counter;
-		  counter++;
-		}
+	    {
+	      Seq.x1=move.x1+counter;
+	      counter++;
+	    }
 	  else
 	    {flag=false;}
 	}
@@ -1320,10 +1340,10 @@ CoordPair FindStartStopOfSequence(char A[CELL_WIDTH][CELL_HEIGHT] ,CoordPair mov
       while (flag==true)
 	{ // find left most extent of sequence
 	  if ( move.x1+counter>=0 && A[move.x1+counter][y]==A[move.x1][y])
-		{
-		  Seq.x1=move.x1-counter;
-		  counter++;
-		}
+	    {
+	      Seq.x1=move.x1-counter;
+	      counter++;
+	    }
 	  else
 	    {flag=false;}
 	}
@@ -1403,7 +1423,7 @@ XYPair GetGameBoardOriginCoordinates()
 	}
     }
   return coords;
- }
+}
 
 XYPair GetGameOverWindowOriginCoordinates()
 {
@@ -1416,6 +1436,8 @@ XYPair GetGameOverWindowOriginCoordinates()
 
 XYPair GetGweledScoresWindowOriginCoordinates()
 {
+  //NOTE: if a game was finished and the high score dialog clicked away, then it will persist and this command will still find one. 
+  //I need to capture this output gracefully when there isn't a 'Gweled Scores' window
   string command="xwininfo -name 'Gweled Scores'  | grep Corners | awk '{print $2}' ";
   XYPair coords=GetWindowOriginCoordinates(command);
   return coords;
@@ -1460,7 +1482,7 @@ XYPair GetWindowOriginCoordinates(string command)
 	}
     }
   return coords;
- }
+}
 
 XYPair GetCoords(CoordPair CP,int set)
 {
@@ -1741,9 +1763,9 @@ int SpaceFakeKeyPress()
 }
 
 /* 
-Errors & Solutions:
- expected unqualified-id before numeric constant: had a function named KeyPress() yet KeyPress is an event type in the Xlib library. Changed KeyPress to FakeKeyPress() All uppercase names are often used for preprocessor macros, which
-                                                             doesn't respect namespace scopes. Therefore such names should
-                                                             generally be avoided for everything else.
+   Errors & Solutions:
+   expected unqualified-id before numeric constant: had a function named KeyPress() yet KeyPress is an event type in the Xlib library. Changed KeyPress to FakeKeyPress() All uppercase names are often used for preprocessor macros, which
+   doesn't respect namespace scopes. Therefore such names should
+   generally be avoided for everything else.
 
 */
