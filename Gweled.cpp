@@ -1,4 +1,3 @@
-//#include <Magick++.h> 
 //g++ -O2 -o Magick Magick.cpp `Magick++-config --cppflags --cxxflags --ldflags --libs` -I/usr/include/GraphicsMagick/ PHAIL
 //g++ -O2 -o Gweled Gweled.cpp `GraphicsMagick++-config --cppflags --cxxflags --ldflags --libs` -I/usr/include/GraphicsMagick/ -lX11  :)
 
@@ -15,6 +14,7 @@
 //use machine learning to have the computer learn how to play the game and come up with an optimal strategy.
 //need an array copy constructor since will need separate copy of game board for subsequent calls
 //-->it looks like it might be easiest to just drop using arrays and use vectors. Then need to convert all [x][y] --> [x+y*CELLWIDTH]
+//save gamerecord to database     
 
 #include "/usr/include/GraphicsMagick/Magick++.h"
 #include <iostream> 
@@ -39,7 +39,7 @@ using namespace Magick;
 #define LARGE_CELL_SIZE 64
 #define CELL_WIDTH 8
 #define CELL_HEIGHT 8
-#define DEBUGPRINT_0 1
+#define DEBUGPRINT_0 0
 #define DEBUGPRINT_1 0 //prints board as color codes
 #define DEBUGPRINT_2 0
 #define SENTINEL 'X'
@@ -59,8 +59,8 @@ struct XYPair
   int x,y;
 };
 
-void initGameRecord(int [POSSIBLEMOVES]);
-void PrintGameRecord(int [POSSIBLEMOVES]);
+void initGameRecord(int (&g)[2][POSSIBLEMOVES]);
+void PrintGameRecord(int  [2][POSSIBLEMOVES]);
 void PerformMove(CoordPair Move);
 void MoveToCoordinatesAndClick(XYPair Move);
 void mouseClick(int button);
@@ -68,10 +68,10 @@ void PrintXYPair(XYPair xy);
 XYPair GetGameBoardOriginCoordinates();
 CoordPair TopMostMove(const int A[CELL_WIDTH][CELL_HEIGHT] );
 CoordPair AnalyzeBoard( char [CELL_WIDTH][CELL_HEIGHT] );
-void AnalyzeBoardv2( char [CELL_WIDTH][CELL_HEIGHT] );
+void AnalyzeBoardv2( char [CELL_WIDTH][CELL_HEIGHT],int (&g)[2][POSSIBLEMOVES] );
 template < class T > void PrintBoard( T*,int, int );// [CELL_WIDTH][CELL_HEIGHT] );
 CoordPair AnalyzeBoardSingle( char [CELL_WIDTH][CELL_HEIGHT] );
-CoordPair AnalyzeBoardSingleMatch( char [CELL_WIDTH][CELL_HEIGHT], int [POSSIBLEMOVES] );
+CoordPair AnalyzeBoardSingleMatch( char [CELL_WIDTH][CELL_HEIGHT], int (&g)[2][POSSIBLEMOVES] );
 void PrintMove(CoordPair);
 string GetWindowPID( /*int*/ );
 CoordPair GetWindowCoords(int );
@@ -132,10 +132,11 @@ XKeyEvent createKeyEvent(Display , Window, Window , bool ,int , int);
   185,185,185 white round bauble
 */
 
-void initGameRecord(int GameRecord[POSSIBLEMOVES])
+void initGameRecord(int (&GameRecord)[2][POSSIBLEMOVES])
 {
   for (int i=0; i<POSSIBLEMOVES;i++)
-    GameRecord[i]=0;
+    {GameRecord[0][i]=0;
+      GameRecord[1][i]=0;}
 }
 
 int main(int argc,char **argv) 
@@ -147,7 +148,7 @@ int main(int argc,char **argv)
   string PID;
   int halfcellpx,wholecellpx;
   
-  int GameRecord[POSSIBLEMOVES];
+  int GameRecord[2][POSSIBLEMOVES]; //first element is used moves, second element is possible moves
 
 
 
@@ -182,7 +183,7 @@ int main(int argc,char **argv)
     }
   halfcellpx=wholecellpx/2;
 
-  initGameRecord( &GameRecord );
+  initGameRecord( GameRecord );
 
   // Construct the image object. Separating image construction from the 
   // the read operation ensures that a failure to read the image file 
@@ -329,19 +330,20 @@ int main(int argc,char **argv)
 	//	Move=AnalyzeBoard( Board );
 	//PrintMove(Move);
 
-	AnalyzeBoardv2(Board);
+	AnalyzeBoardv2(Board,GameRecord);
 
 	// Check to see if the game has ended 
 	if (!GameOver())
 	  {
 	    //	if (Move==PreviousMove)
-	    Move=AnalyzeBoardSingleMatch( Board , &GameRecord);
+	    Move=AnalyzeBoardSingleMatch( Board , GameRecord);
 	    PrintMove(Move);
 	    //	PrintXYPair(screen_coords);
 	    PerformMove(Move);
 	  }
 	else
 	  {
+	    GameOverFlag=true;
 	    std::cout<<"G.O. need to restart"<<std::endl;
 	    int code;
 	    //attempt to dismiss the dialog and start a new game.
@@ -570,7 +572,7 @@ void PrintBoardChar(char Board[CELL_WIDTH][CELL_HEIGHT],int W,int H)
 
 }
 
-void PrintGameRecord(int GameRecord[POSSIBLEMOVES])
+void PrintGameRecord(int GameRecord[0][POSSIBLEMOVES])
 {
   /*  for (int i=0;i<POSSIBLEMOVES;i++)
     {
@@ -578,23 +580,23 @@ void PrintGameRecord(int GameRecord[POSSIBLEMOVES])
     }
   */
   //plot in a nice row format with | delimiters H,Z heading and 123435678 down the side?
-  std::cout<<"1h:"<<GameRecord[0]<<std::endl;
-  std::cout<<"2h:"<<GameRecord[1]<<std::endl;
-  std::cout<<"3h:"<<GameRecord[2]<<std::endl;
-  std::cout<<"4h:"<<GameRecord[3]<<std::endl;
-  std::cout<<"5h:"<<GameRecord[4]<<std::endl;
-  std::cout<<"6h:"<<GameRecord[5]<<std::endl;
-  std::cout<<"7h:"<<GameRecord[6]<<std::endl;
-  std::cout<<"8h:"<<GameRecord[7]<<std::endl;
+  std::cout<<"1h:"<<GameRecord[0][0]<<" of "<<GameRecord[1][0]<<std::endl;
+  std::cout<<"2h:"<<GameRecord[0][1]<<" of "<<GameRecord[1][1]<<std::endl;
+  std::cout<<"3h:"<<GameRecord[0][2]<<" of "<<GameRecord[1][2]<<std::endl;
+  std::cout<<"4h:"<<GameRecord[0][3]<<" of "<<GameRecord[1][3]<<std::endl;
+  std::cout<<"5h:"<<GameRecord[0][4]<<" of "<<GameRecord[1][4]<<std::endl;
+  std::cout<<"6h:"<<GameRecord[0][5]<<" of "<<GameRecord[1][5]<<std::endl;
+  std::cout<<"7h:"<<GameRecord[0][6]<<" of "<<GameRecord[1][6]<<std::endl;
+  std::cout<<"8h:"<<GameRecord[0][7]<<" of "<<GameRecord[1][7]<<std::endl;
 
-  std::cout<<"1v:"<<GameRecord[8]<<std::endl;
-  std::cout<<"2v:"<<GameRecord[9]<<std::endl;
-  std::cout<<"3v:"<<GameRecord[10]<<std::endl;
-  std::cout<<"4v:"<<GameRecord[11]<<std::endl;
-  std::cout<<"5v:"<<GameRecord[12]<<std::endl;
-  std::cout<<"6v:"<<GameRecord[13]<<std::endl;
-  std::cout<<"7v:"<<GameRecord[14]<<std::endl;
-  std::cout<<"8v:"<<GameRecord[15]<<std::endl;
+  std::cout<<"1v:"<<GameRecord[0][8]<<" of "<<GameRecord[1][8]<<std::endl;
+  std::cout<<"2v:"<<GameRecord[0][9]<<" of "<<GameRecord[1][9]<<std::endl;
+  std::cout<<"3v:"<<GameRecord[0][10]<<" of "<<GameRecord[1][10]<<std::endl;
+  std::cout<<"4v:"<<GameRecord[0][11]<<" of "<<GameRecord[1][11]<<std::endl;
+  std::cout<<"5v:"<<GameRecord[0][12]<<" of "<<GameRecord[1][12]<<std::endl;
+  std::cout<<"6v:"<<GameRecord[0][13]<<" of "<<GameRecord[1][13]<<std::endl;
+  std::cout<<"7v:"<<GameRecord[0][14]<<" of "<<GameRecord[1][14]<<std::endl;
+  std::cout<<"8v:"<<GameRecord[0][15]<<" of "<<GameRecord[1][15]<<std::endl;
 
 }
 
@@ -625,7 +627,7 @@ CoordPair TopMostMove(const int A[CELL_WIDTH][CELL_HEIGHT])
   return Move;
 }
 
-CoordPair AnalyzeBoard( char A[CELL_WIDTH][CELL_HEIGHT], int GameRecord[POSSIBLEMOVES] )
+CoordPair AnalyzeBoard( char A[CELL_WIDTH][CELL_HEIGHT], int GameRecord[0][POSSIBLEMOVES] )
 {//this function creates a secondary board which holds the number of moves that complete a sequence from the current position
   //It returns the topmost move. I believe that due to MovesBoard marking both the cells involved in the move that it *might* not always pick the topmost. The first encountered match might be a vertical match where a horizontal match might be a better choice.
   int MovesBoard[CELL_WIDTH][CELL_HEIGHT];
@@ -639,55 +641,55 @@ CoordPair AnalyzeBoard( char A[CELL_WIDTH][CELL_HEIGHT], int GameRecord[POSSIBLE
   /*1101*/
   for (x=0;x<5;x++) { for ( y=0;y<8;y++) {
       if ( A[x][y]==A[x+1][y] && A[x+3][y]==A[x][y] )
-	{MovesBoard[x+2][y]++; MovesBoard[x+3][y]++;std::cout<<"1h";GameRecord[0]++;}
+	{MovesBoard[x+2][y]++; MovesBoard[x+3][y]++;std::cout<<"1h";GameRecord[0][0]++;}
     }    }
   //pattern 7 horizontal
   /*110
     001*/
   for (x=0;x<6;x++) { for ( y=0;y<7;y++) {
       if ( A[x][y]==A[x+1][y] && A[x+2][y+1]==A[x][y] )
-	{MovesBoard[x+2][y]++; MovesBoard[x+2][y+1]++;std::cout<<"7h";GameRecord[6]++;}
+	{MovesBoard[x+2][y]++; MovesBoard[x+2][y+1]++;std::cout<<"7h";GameRecord[0][6]++;}
     }    }
   //Pattern 5 horizontal
   /*011
     100*/
   for (x=1;x<7;x++) { for ( y=0;y<7;y++) {
       if ( A[x][y]==A[x+1][y] && A[x-1][y+1]==A[x][y] )
-	{MovesBoard[x-1][y]++; MovesBoard[x-1][y+1]++;std::cout<<"5h";GameRecord[4]++;}
+	{MovesBoard[x-1][y]++; MovesBoard[x-1][y+1]++;std::cout<<"5h";GameRecord[0][4]++;}
     }    }
   //pattern 6 horizontal
   /*100
     011*/
   for (x=1;x<7;x++) { for ( y=1;y<8;y++) {
       if ( A[x][y]==A[x+1][y] && A[x-1][y-1]==A[x][y] )
-	{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";GameRecord[5]++;}
+	{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";GameRecord[0][5]++;}
     }    }
   //pattern 8 horizontal
   /*001
     110*/    
   for (x=0;x<6;x++) { for ( y=1;y<8;y++) {
       if ( A[x][y]==A[x+1][y] && A[x+2][y-1]==A[x][y] )
-	{MovesBoard[x+2][y]++; MovesBoard[x+2][y-1]++;std::cout<<"8h";GameRecord[7]++;}
+	{MovesBoard[x+2][y]++; MovesBoard[x+2][y-1]++;std::cout<<"8h";GameRecord[0][7]++;}
     }    }
   //pattern 4 horizontal
   /*101
     010*/
   for (x=0;x<6;x++) { for ( y=0;y<7;y++) {
       if ( A[x][y]==A[x+2][y] && A[x+1][y+1]==A[x][y] )
-	{MovesBoard[x+1][y+1]++; MovesBoard[x+1][y]++;std::cout<<"4h";GameRecord[3]++;}
+	{MovesBoard[x+1][y+1]++; MovesBoard[x+1][y]++;std::cout<<"4h";GameRecord[0][3]++;}
     }    }
   //pattern 2 horizontal
   /*1011*/
   for (x=0;x<5;x++) { for ( y=0;y<8;y++) {
       if ( A[x][y]==A[x+2][y] && A[x+3][y]==A[x][y] )
-	{MovesBoard[x][y]++; MovesBoard[x+1][y]++;std::cout<<"2h";GameRecord[1]++;}
+	{MovesBoard[x][y]++; MovesBoard[x+1][y]++;std::cout<<"2h";GameRecord[0][1]++;}
     }    }
   //pattern 3 horizontal
   /*010
     101*/
   for (x=0;x<6;x++) { for ( y=1;y<8;y++) {
       if ( A[x][y]==A[x+2][y] && A[x+1][y-1]==A[x][y] )
-	{MovesBoard[x+1][y]++; MovesBoard[x+1][y-1]++;std::cout<<"3h";GameRecord[2]++;}
+	{MovesBoard[x+1][y]++; MovesBoard[x+1][y-1]++;std::cout<<"3h";GameRecord[0][2]++;}
     }    }
 
   /////////----------------
@@ -699,7 +701,7 @@ CoordPair AnalyzeBoard( char A[CELL_WIDTH][CELL_HEIGHT], int GameRecord[POSSIBLE
     1*/
   for (x=0;x<8;x++) { for ( y=0;y<5;y++) {
       if ( A[x][y]==A[x][y+1] && A[x][y+3]==A[x][y] )
-	{MovesBoard[x][y+2]++; MovesBoard[x][y+3]++;std::cout<<"1v";GameRecord[8]++;}
+	{MovesBoard[x][y+2]++; MovesBoard[x][y+3]++;std::cout<<"1v";GameRecord[0][8]++;}
     }    }
   //pattern 7 vertical
   /* 10
@@ -707,7 +709,7 @@ CoordPair AnalyzeBoard( char A[CELL_WIDTH][CELL_HEIGHT], int GameRecord[POSSIBLE
      01   */
   for (x=0;x<7;x++) { for ( y=0;y<6;y++) {
       if ( A[x][y]==A[x][y+1] && A[x+1][y+2]==A[x][y] )
-	{MovesBoard[x][y+2]++; MovesBoard[x+1][y+2]++;std::cout<<"7v";GameRecord[14]++;}
+	{MovesBoard[x][y+2]++; MovesBoard[x+1][y+2]++;std::cout<<"7v";GameRecord[0][14]++;}
     }    }
   //Pattern 5 vertical
   /*10
@@ -715,7 +717,7 @@ CoordPair AnalyzeBoard( char A[CELL_WIDTH][CELL_HEIGHT], int GameRecord[POSSIBLE
     01*/
   for (x=0;x<7;x++) { for ( y=1;y<7;y++) {
       if ( A[x][y]==A[x][y+1] && A[x-1][y-1]==A[x][y] )
-	{MovesBoard[x][y-1]++; MovesBoard[x-1][y-1]++;std::cout<<"5v";GameRecord[12]++;}
+	{MovesBoard[x][y-1]++; MovesBoard[x-1][y-1]++;std::cout<<"5v";GameRecord[0][12]++;}
     }    }
   //pattern 6 vertical
   /*01
@@ -723,7 +725,7 @@ CoordPair AnalyzeBoard( char A[CELL_WIDTH][CELL_HEIGHT], int GameRecord[POSSIBLE
     10*/
   for (x=0;x<7;x++) { for ( y=1;y<7;y++) {
       if ( A[x][y]==A[x][y+1] && A[x+1][y-1]==A[x][y] )
-	{MovesBoard[x][y-1]++; MovesBoard[x+1][y-1]++;std::cout<<"6v";GameRecord[13]++;}
+	{MovesBoard[x][y-1]++; MovesBoard[x+1][y-1]++;std::cout<<"6v";GameRecord[0][13]++;}
     }    }
   //pattern 8 vertical
   /*01
@@ -731,7 +733,7 @@ CoordPair AnalyzeBoard( char A[CELL_WIDTH][CELL_HEIGHT], int GameRecord[POSSIBLE
     10*/
   for (x=1;x<8;x++) { for ( y=0;y<6;y++) {
       if ( A[x][y]==A[x][y+1] && A[x-1][y+2]==A[x][y] )
-	{MovesBoard[x][y+2]++; MovesBoard[x-1][y+2]++;std::cout<<"8v";GameRecord[15]++;}
+	{MovesBoard[x][y+2]++; MovesBoard[x-1][y+2]++;std::cout<<"8v";GameRecord[0][15]++;}
     }    }
   //pattern 4 vertical
   /*10
@@ -739,7 +741,7 @@ CoordPair AnalyzeBoard( char A[CELL_WIDTH][CELL_HEIGHT], int GameRecord[POSSIBLE
     10*/
   for (x=0;x<7;x++) { for ( y=0;y<6;y++) {
       if ( A[x][y]==A[x][y+2] && A[x+1][y+1]==A[x][y] )
-	{MovesBoard[x+1][y+1]++; MovesBoard[x][y+1]++;std::cout<<"4v";GameRecord[11]++;}
+	{MovesBoard[x+1][y+1]++; MovesBoard[x][y+1]++;std::cout<<"4v";GameRecord[0][11]++;}
     }    }
   //pattern 2 vertical
   /*1
@@ -748,7 +750,7 @@ CoordPair AnalyzeBoard( char A[CELL_WIDTH][CELL_HEIGHT], int GameRecord[POSSIBLE
     1*/
   for (x=0;x<8;x++) { for ( y=0;y<5;y++) {
       if ( A[x][y]==A[x][y+2] && A[x][y+3]==A[x][y] )
-	{MovesBoard[x][y]++; MovesBoard[x][y+1]++;std::cout<<"2v";GameRecord[9]++;}
+	{MovesBoard[x][y]++; MovesBoard[x][y+1]++;std::cout<<"2v";GameRecord[0][9]++;}
     }    }
   //pattern 3 vertical
   /*01
@@ -756,7 +758,7 @@ CoordPair AnalyzeBoard( char A[CELL_WIDTH][CELL_HEIGHT], int GameRecord[POSSIBLE
     01*/
   for (x=1;x<8;x++) { for ( y=0;y<6;y++) {
       if ( A[x][y]==A[x][y+2] && A[x-1][y+1]==A[x][y] )
-	{MovesBoard[x][y+1]++; MovesBoard[x-1][y+1]++;std::cout<<"3v";GameRecord[10]++;}
+	{MovesBoard[x][y+1]++; MovesBoard[x-1][y+1]++;std::cout<<"3v";GameRecord[0][10]++;}
     }    }
 
   std::cout<<std::endl;
@@ -791,7 +793,7 @@ CoordPair ReorderCoordPair( CoordPair a)
   return b;
 }
 
-void AnalyzeBoardv2( char A[CELL_WIDTH][CELL_HEIGHT] )
+void AnalyzeBoardv2( char A[CELL_WIDTH][CELL_HEIGHT], int (&GameRecord)[2][POSSIBLEMOVES] )
 {//this function modifies a second matrix which holds the number of moves that can be made using the current coordinate.
   //the first version marked both cells that were involved in the move. This version only marks the cell that would copmlete the sequence when the appropriate jewel was moved *into* it.
   int MovesBoard[CELL_WIDTH][CELL_HEIGHT];
@@ -812,12 +814,12 @@ void AnalyzeBoardv2( char A[CELL_WIDTH][CELL_HEIGHT] )
 	  //Pattern 1 horizontal
 	  /*1101*/      
 	  if ( A[x][y]==A[x+1][y] && A[x+3][y]==A[x][y] )
-	    {MovesBoard[x+2][y]++; }//Move.x2=x+3; Move.y2=y;std::cout<<"1h"; return Move;}//	    {MovesBoard[x+2][y]++; MovesBoard[x+3][y]++;std::cout<<"1h";}
+	    {MovesBoard[x+2][y]++;GameRecord[1][0]++; }//Move.x2=x+3; Move.y2=y;std::cout<<"1h"; return Move;}//	    {MovesBoard[x+2][y]++;GameRecord[1][]++; MovesBoard[x+3][y]++;GameRecord[1][]++;std::cout<<"1h";}
 
 	  //pattern 2 horizontal
 	  /*1011*/
 	  if ( A[x][y]==A[x+2][y] && A[x+3][y]==A[x][y] )
-	    {MovesBoard[x][y]++;}// Move.x2=x+1;Move.y2=y;std::cout<<"2h";return Move;}//	    {MovesBoard[x][y]++; MovesBoard[x+1][y]++;std::cout<<"2h";}
+	    {MovesBoard[x][y]++;GameRecord[1][1]++;}// Move.x2=x+1;Move.y2=y;std::cout<<"2h";return Move;}//	    {MovesBoard[x][y]++;GameRecord[1][]++; MovesBoard[x+1][y]++;GameRecord[1][]++;std::cout<<"2h";}
     	}    
       if (x<6&&y<7)
 	{
@@ -825,13 +827,13 @@ void AnalyzeBoardv2( char A[CELL_WIDTH][CELL_HEIGHT] )
 	  /*101
 	    010*/
 	  if ( A[x][y]==A[x+2][y] && A[x+1][y+1]==A[x][y] )
-	    {MovesBoard[x+1][y]++;}// Move.x2=x+1;Move.y2=y+1;std::cout<<"4h";return Move;}// need to reorder coords so x1,y1 is coord that completes 3some
+	    {MovesBoard[x+1][y]++;GameRecord[1][3]++;}// Move.x2=x+1;Move.y2=y+1;std::cout<<"4h";return Move;}// need to reorder coords so x1,y1 is coord that completes 3some
 
 	  //pattern 7 horizontal
 	  /*110
 	    001*/
 	  if ( A[x][y]==A[x+1][y] && A[x+2][y+1]==A[x][y] )
-	    {MovesBoard[x+2][y]++;}//Move.x2=x+2;Move.y2=y+1;std::cout<<"7h";return Move;}//	    {MovesBoard[x+2][y]++; MovesBoard[x+2][y+1]++;std::cout<<"7h";}
+	    {MovesBoard[x+2][y]++;GameRecord[1][6]++;}//Move.x2=x+2;Move.y2=y+1;std::cout<<"7h";return Move;}//	    {MovesBoard[x+2][y]++;GameRecord[1][]++; MovesBoard[x+2][y+1]++;GameRecord[1][]++;std::cout<<"7h";}
 	}
 
       if (x<6 && y<7 )
@@ -840,26 +842,26 @@ void AnalyzeBoardv2( char A[CELL_WIDTH][CELL_HEIGHT] )
 	  /*010
 	    101*/
 	  if ( A[x+1][y]==A[x][y+1] && A[x+2][y+1]==A[x+1][y] )
-	    {MovesBoard[x+1][y+1]++;}// Move.x2=x+1;Move.y2=y;std::cout<<"3h";return Move;}//		{MovesBoard[x+1][y]++; MovesBoard[x+1][y-1]++;std::cout<<"3h";}
+	    {MovesBoard[x+1][y+1]++;GameRecord[1][2]++;}// Move.x2=x+1;Move.y2=y;std::cout<<"3h";return Move;}//		{MovesBoard[x+1][y]++;GameRecord[1][]++; MovesBoard[x+1][y-1]++;GameRecord[1][]++;std::cout<<"3h";}
 
 	  //pattern 8 horizontal
 	  /*001
 	    110*/    
 	  if ( A[x+2][y]==A[x][y+1] && A[x+2][y]==A[x+1][y+1] )
-	    {MovesBoard[x+2][y+1]++;}// Move.x2=x+2;Move.y2=y;std::cout<<"8h";return Move;}//		{MovesBoard[x+2][y]++; MovesBoard[x+2][y-1]++;std::cout<<"8h";}
+	    {MovesBoard[x+2][y+1]++;GameRecord[1][7]++;}// Move.x2=x+2;Move.y2=y;std::cout<<"8h";return Move;}//		{MovesBoard[x+2][y]++;GameRecord[1][]++; MovesBoard[x+2][y-1]++;GameRecord[1][]++;std::cout<<"8h";}
 
 	  //Pattern 5 horizontal
 	  /*011
 	    100*/
 	  if ( A[x][y+1]==A[x+1][y] && A[x][y+1]==A[x+2][y] )
-	    {MovesBoard[x][y]++;}//Move.x2=x;Move.y2=y+1;std::cout<<"5h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y+1]++;std::cout<<"5h";}
+	    {MovesBoard[x][y]++;GameRecord[1][4]++;}//Move.x2=x;Move.y2=y+1;std::cout<<"5h";return Move;}//		{MovesBoard[x-1][y]++;GameRecord[1][]++; MovesBoard[x-1][y+1]++;GameRecord[1][]++;std::cout<<"5h";}
 
 	  //pattern 6 horizontal
 	  /*100
 	    011*/
 
 	  if ( A[x][y]==A[x+1][y+1] && A[x+2][y+1]==A[x][y] )
-	    {MovesBoard[x][y+1]++;}//Move.x2=x;Move.y2=y;std::cout<<"6h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";}
+	    {MovesBoard[x][y+1]++;GameRecord[1][5]++;}//Move.x2=x;Move.y2=y;std::cout<<"6h";return Move;}//		{MovesBoard[x-1][y]++;GameRecord[1][]++; MovesBoard[x-1][y-1]++;GameRecord[1][]++;std::cout<<"6h";}
 	}
       //End Horizontal cases
       //Start Vertical cases
@@ -871,14 +873,14 @@ void AnalyzeBoardv2( char A[CELL_WIDTH][CELL_HEIGHT] )
 	    0
 	    1*/
 	  if ( A[x][y]==A[x][y+1] && A[x][y+3]==A[x][y] )
-	    {MovesBoard[x][y+2]++;}//Move.x2=x;Move.y2=y+3;std::cout<<"1v";return Move;}//}	{MovesBoard[x][y+2]++; MovesBoard[x][y+3]++;std::cout<<"1v";}
+	    {MovesBoard[x][y+2]++;GameRecord[1][8]++;}//Move.x2=x;Move.y2=y+3;std::cout<<"1v";return Move;}//}	{MovesBoard[x][y+2]++;GameRecord[1][]++; MovesBoard[x][y+3]++;GameRecord[1][]++;std::cout<<"1v";}
 	  //pattern 2 vertical
 	  /*1
 	    0
 	    1
 	    1*/
 	  if ( A[x][y]==A[x][y+2] && A[x][y+3]==A[x][y] )
-	    {MovesBoard[x][y+1]++;}// Move.x2=x;Move.y2=y;std::cout<<"2v";return Move;}//}	{MovesBoard[x][y]++; MovesBoard[x][y+1]++;std::cout<<"2v";}
+	    {MovesBoard[x][y+1]++;GameRecord[1][9]++;}// Move.x2=x;Move.y2=y;std::cout<<"2v";return Move;}//}	{MovesBoard[x][y]++;GameRecord[1][]++; MovesBoard[x][y+1]++;GameRecord[1][]++;std::cout<<"2v";}
 
 	}
       if(x<7&&y<6)
@@ -888,27 +890,27 @@ void AnalyzeBoardv2( char A[CELL_WIDTH][CELL_HEIGHT] )
 	    01
 	    10*/
 	  if ( A[x][y]==A[x][y+2] && A[x+1][y+1]==A[x][y] )
-	    {MovesBoard[x][y+1]++;}// Move.x2=x+1;Move.y2=y+1;std::cout<<"4v";return Move;}//	    {MovesBoard[x+1][y+1]++; MovesBoard[x][y+1]++;}
+	    {MovesBoard[x][y+1]++;GameRecord[1][11]++;}// Move.x2=x+1;Move.y2=y+1;std::cout<<"4v";return Move;}//	    {MovesBoard[x+1][y+1]++;GameRecord[1][]++; MovesBoard[x][y+1]++;GameRecord[1][]++;}
 
 	  //pattern 7 vertical
 	  /* 10
 	     10
 	     01   */
 	  if ( A[x][y]==A[x][y+1] && A[x+1][y+2]==A[x][y] )
-	    {MovesBoard[x][y+2]++;}// Move.x2=x+1;Move.y2=y+2;std::cout<<"7v";return Move;}//}	    {MovesBoard[x][y+2]++; MovesBoard[x+1][y+2]++;std::cout<<"7v";}
+	    {MovesBoard[x][y+2]++;GameRecord[1][14]++;}// Move.x2=x+1;Move.y2=y+2;std::cout<<"7v";return Move;}//}	    {MovesBoard[x][y+2]++;GameRecord[1][]++; MovesBoard[x+1][y+2]++;GameRecord[1][]++;std::cout<<"7v";}
 	}
       if (x<7 && y<6)
 	{
 	  if ( A[x][y]==A[x+1][y+1] && A[x+1][y+2]==A[x][y] )
-	    {MovesBoard[x+1][y]++;}// Move.x2=x;Move.y2=y;std::cout<<"5v";return Move;}//; }		{MovesBoard[x][y-1]++; MovesBoard[x-1][y-1]++;std::cout<<"5v";}
+	    {MovesBoard[x+1][y]++;GameRecord[1][12]++;}// Move.x2=x;Move.y2=y;std::cout<<"5v";return Move;}//; }		{MovesBoard[x][y-1]++;GameRecord[1][]++; MovesBoard[x-1][y-1]++;GameRecord[1][]++;std::cout<<"5v";}
 
 	  if ( A[x+1][y]==A[x][y+1] && A[x+1][y]==A[x][y+2] )
-	    {MovesBoard[x][y]++;}// Move.x2=x+1;Move.y2=y;std::cout<<"6v";return Move;}//}	    {MovesBoard[x][y-1]++; MovesBoard[x+1][y-1]++;std::cout<<"6v";}
+	    {MovesBoard[x][y]++;GameRecord[1][13]++;}// Move.x2=x+1;Move.y2=y;std::cout<<"6v";return Move;}//}	    {MovesBoard[x][y-1]++;GameRecord[1][]++; MovesBoard[x+1][y-1]++;GameRecord[1][]++;std::cout<<"6v";}
 	  if ( A[x+1][y]==A[x+1][y+1] && A[x][y+2]==A[x+1][y] )
-	    {MovesBoard[x+1][y+2]++;}// Move.x2=x;Move.y2=y+2;std::cout<<"8v";return Move;}//}	{MovesBoard[x][y+2]++; MovesBoard[x-1][y+2]++;std::cout<<"8v";}
+	    {MovesBoard[x+1][y+2]++;GameRecord[1][15]++;}// Move.x2=x;Move.y2=y+2;std::cout<<"8v";return Move;}//}	{MovesBoard[x][y+2]++;GameRecord[1][]++; MovesBoard[x-1][y+2]++;GameRecord[1][]++;std::cout<<"8v";}
 
 	  if ( A[x+1][y]==A[x][y+1] && A[x+1][y]==A[x+1][y+2] )
-	    {MovesBoard[x+1][y+1]++;}// Move.x2=x;Move.y2=y+1;std::cout<<"3v";return Move;}//}	{MovesBoard[x][y+1]++; MovesBoard[x-1][y+1]++;std::cout<<"3v";}
+	    {MovesBoard[x+1][y+1]++;GameRecord[1][10]++;}// Move.x2=x;Move.y2=y+1;std::cout<<"3v";return Move;}//}	{MovesBoard[x][y+1]++;GameRecord[1][]++; MovesBoard[x-1][y+1]++;GameRecord[1][]++;std::cout<<"3v";}
 	} 
     }
   }
@@ -917,7 +919,7 @@ void AnalyzeBoardv2( char A[CELL_WIDTH][CELL_HEIGHT] )
 
 }
 
-CoordPair AnalyzeBoardSingleMatch( char A[CELL_WIDTH][CELL_HEIGHT] ,int GameRecord[POSSIBLEMOVES])
+CoordPair AnalyzeBoardSingleMatch( char A[CELL_WIDTH][CELL_HEIGHT] ,int (&GameRecord)[2][POSSIBLEMOVES])
 {//function takes a gameboard and returns a coordpair of first move found 
 
   CoordPair Move;
@@ -933,12 +935,12 @@ CoordPair AnalyzeBoardSingleMatch( char A[CELL_WIDTH][CELL_HEIGHT] ,int GameReco
 	  //Pattern 1 horizontal
 	  /*1101*/      
 	  if ( A[x][y]==A[x+1][y] && A[x+3][y]==A[x][y] )
-	    {Move.x1=x+2; Move.y1=y; Move.x2=x+3; Move.y2=y;std::cout<<"1h";GameRecord[0]++; return Move;}//	    {MovesBoard[x+2][y]++; MovesBoard[x+3][y]++;std::cout<<"1h";}
+	    {Move.x1=x+2; Move.y1=y; Move.x2=x+3; Move.y2=y;std::cout<<"1h";GameRecord[0][0]++; return Move;}//	    {MovesBoard[x+2][y]++; MovesBoard[x+3][y]++;std::cout<<"1h";}
 
 	  //pattern 2 horizontal
 	  /*1011*/
 	  if ( A[x][y]==A[x+2][y] && A[x+3][y]==A[x][y] )
-	    {Move.x1=x;Move.y1=y; Move.x2=x+1;Move.y2=y;std::cout<<"2h";GameRecord[1]++; return Move;}//	    {MovesBoard[x][y]++; MovesBoard[x+1][y]++;std::cout<<"2h";}
+	    {Move.x1=x;Move.y1=y; Move.x2=x+1;Move.y2=y;std::cout<<"2h";GameRecord[0][1]++; return Move;}//	    {MovesBoard[x][y]++; MovesBoard[x+1][y]++;std::cout<<"2h";}
     	}    
       if (x<6&&y<7)
 	{
@@ -946,14 +948,14 @@ CoordPair AnalyzeBoardSingleMatch( char A[CELL_WIDTH][CELL_HEIGHT] ,int GameReco
 	  /*101
 	    010*/
 	  if ( A[x][y]==A[x+2][y] && A[x+1][y+1]==A[x][y] )
-	    {Move.x1=x+1;Move.y1=y; Move.x2=x+1;Move.y2=y+1;std::cout<<"4h";GameRecord[3]++; return Move;}// need to reorder coords so x1,y1 is coord that completes 3some
+	    {Move.x1=x+1;Move.y1=y; Move.x2=x+1;Move.y2=y+1;std::cout<<"4h";GameRecord[0][3]++; return Move;}// need to reorder coords so x1,y1 is coord that completes 3some
 	  //{Move.x1=x+1;Move.y1=y+1; Move.x2=x+1;Move.y2=y;std::cout<<"4h";return Move;}//	    {MovesBoard[x+1][y+1]++; MovesBoard[x+1][y]++;std::cout<<"4h";}
 
 	  //pattern 7 horizontal
 	  /*110
 	    001*/
 	  if ( A[x][y]==A[x+1][y] && A[x+2][y+1]==A[x][y] )
-	    {Move.x1=x+2;Move.y1=y;Move.x2=x+2;Move.y2=y+1;std::cout<<"7h";GameRecord[6]++; return Move;}//	    {MovesBoard[x+2][y]++; MovesBoard[x+2][y+1]++;std::cout<<"7h";}
+	    {Move.x1=x+2;Move.y1=y;Move.x2=x+2;Move.y2=y+1;std::cout<<"7h";GameRecord[0][6]++; return Move;}//	    {MovesBoard[x+2][y]++; MovesBoard[x+2][y+1]++;std::cout<<"7h";}
 	}
 
       //old limits      if (x<6 && y>0 )
@@ -966,7 +968,7 @@ CoordPair AnalyzeBoardSingleMatch( char A[CELL_WIDTH][CELL_HEIGHT] ,int GameReco
 	  //	  if ( A[x][y]==A[x+2][y] && A[x+1][y-1]==A[x][y] ) 	    {Move.x1=x+1;Move.y1=y; Move.x2=x+1;Move.y2=y-1;std::cout<<"3h";return Move;}//		{MovesBoard[x+1][y]++; MovesBoard[x+1][y-1]++;std::cout<<"3h";}
 	  //new 3h start at 0,0 of pattern instead of 1,0
 	  if ( A[x+1][y]==A[x][y+1] && A[x+2][y+1]==A[x+1][y] )
-	    {Move.x1=x+1;Move.y1=y+1; Move.x2=x+1;Move.y2=y;std::cout<<"3h";GameRecord[2]++;return Move;}//		{MovesBoard[x+1][y]++; MovesBoard[x+1][y-1]++;std::cout<<"3h";}
+	    {Move.x1=x+1;Move.y1=y+1; Move.x2=x+1;Move.y2=y;std::cout<<"3h";GameRecord[0][2]++;return Move;}//		{MovesBoard[x+1][y]++; MovesBoard[x+1][y-1]++;std::cout<<"3h";}
 	  //	    {Move.x1=x+1;Move.y1=y; Move.x2=x+1;Move.y2=y+1;std::cout<<"3h";return Move;}//		{MovesBoard[x+1][y]++; MovesBoard[x+1][y-1]++;std::cout<<"3h";}
 
 	  //pattern 8 horizontal
@@ -975,7 +977,7 @@ CoordPair AnalyzeBoardSingleMatch( char A[CELL_WIDTH][CELL_HEIGHT] ,int GameReco
 	  //  if ( A[x][y]==A[x+1][y] && A[x+2][y-1]==A[x][y] )	    {Move.x1=x+2;Move.y1=y; Move.x2=x+2;Move.y2=y-1;std::cout<<"8h";return Move;}//		{MovesBoard[x+2][y]++; MovesBoard[x+2][y-1]++;std::cout<<"8h";}
 	  //new 8h start at 0,0 of pattern instead of 1,0
 	  if ( A[x+2][y]==A[x][y+1] && A[x+2][y]==A[x+1][y+1] )
-	    {Move.x1=x+2;Move.y1=y+1; Move.x2=x+2;Move.y2=y;std::cout<<"8h";GameRecord[7]++;return Move;}//		{MovesBoard[x+2][y]++; MovesBoard[x+2][y-1]++;std::cout<<"8h";}
+	    {Move.x1=x+2;Move.y1=y+1; Move.x2=x+2;Move.y2=y;std::cout<<"8h";GameRecord[0][7]++;return Move;}//		{MovesBoard[x+2][y]++; MovesBoard[x+2][y-1]++;std::cout<<"8h";}
 	  //	    {Move.x1=x+2;Move.y1=y; Move.x2=x+2;Move.y2=y+1;std::cout<<"8h";return Move;}//		{MovesBoard[x+2][y]++; MovesBoard[x+2][y-1]++;std::cout<<"8h";}
 
 	  //new 5h
@@ -983,7 +985,7 @@ CoordPair AnalyzeBoardSingleMatch( char A[CELL_WIDTH][CELL_HEIGHT] ,int GameReco
 	  /*011
 	    100*/
 	  if ( A[x][y+1]==A[x+1][y] && A[x][y+1]==A[x+2][y] )
-	    {Move.x1=x;Move.y1=y;Move.x2=x;Move.y2=y+1;std::cout<<"5h";GameRecord[4]++;return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y+1]++;std::cout<<"5h";}
+	    {Move.x1=x;Move.y1=y;Move.x2=x;Move.y2=y+1;std::cout<<"5h";GameRecord[0][4]++;return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y+1]++;std::cout<<"5h";}
 	  //		{Move.x1=x;Move.y1=y;Move.x2=x;Move.y2=y+1;std::cout<<"5h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y+1]++;std::cout<<"5h";}
 
 	  //new 6h
@@ -992,7 +994,7 @@ CoordPair AnalyzeBoardSingleMatch( char A[CELL_WIDTH][CELL_HEIGHT] ,int GameReco
 	    011*/
 
 	  if ( A[x][y]==A[x+1][y+1] && A[x+2][y+1]==A[x][y] )
-	    {Move.x1=x;Move.y1=y+1;Move.x2=x;Move.y2=y;std::cout<<"6h";GameRecord[5]++;return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";}
+	    {Move.x1=x;Move.y1=y+1;Move.x2=x;Move.y2=y;std::cout<<"6h";GameRecord[0][5]++;return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";}
 	  //		{Move.x1=x;Move.y1=y;Move.x2=x;Move.y2=y+1;std::cout<<"6h";return Move;}//		{MovesBoard[x-1][y]++; MovesBoard[x-1][y-1]++;std::cout<<"6h";}
 	}
 	
@@ -1027,14 +1029,14 @@ CoordPair AnalyzeBoardSingleMatch( char A[CELL_WIDTH][CELL_HEIGHT] ,int GameReco
 	    0
 	    1*/
 	  if ( A[x][y]==A[x][y+1] && A[x][y+3]==A[x][y] )
-	    {Move.x1=x;Move.y1=y+2;Move.x2=x;Move.y2=y+3;std::cout<<"1v";GameRecord[8]++;return Move;}//}	{MovesBoard[x][y+2]++; MovesBoard[x][y+3]++;std::cout<<"1v";}
+	    {Move.x1=x;Move.y1=y+2;Move.x2=x;Move.y2=y+3;std::cout<<"1v";GameRecord[0][8]++;return Move;}//}	{MovesBoard[x][y+2]++; MovesBoard[x][y+3]++;std::cout<<"1v";}
 	  //pattern 2 vertical
 	  /*1
 	    0
 	    1
 	    1*/
 	  if ( A[x][y]==A[x][y+2] && A[x][y+3]==A[x][y] )
-	    {Move.x1=x;Move.y1=y+1; Move.x2=x;Move.y2=y;std::cout<<"2v";GameRecord[9]++;return Move;}//}	{MovesBoard[x][y]++; MovesBoard[x][y+1]++;std::cout<<"2v";}
+	    {Move.x1=x;Move.y1=y+1; Move.x2=x;Move.y2=y;std::cout<<"2v";GameRecord[0][9]++;return Move;}//}	{MovesBoard[x][y]++; MovesBoard[x][y+1]++;std::cout<<"2v";}
 	  //	    {Move.x1=x;Move.y1=y; Move.x2=x;Move.y2=y+1;std::cout<<"2v";return Move;}//}	{MovesBoard[x][y]++; MovesBoard[x][y+1]++;std::cout<<"2v";}
 	}
       if(x<7&&y<6)
@@ -1044,27 +1046,27 @@ CoordPair AnalyzeBoardSingleMatch( char A[CELL_WIDTH][CELL_HEIGHT] ,int GameReco
 	    01
 	    10*/
 	  if ( A[x][y]==A[x][y+2] && A[x+1][y+1]==A[x][y] )
-	    {Move.x1=x;Move.y1=y+1; Move.x2=x+1;Move.y2=y+1;std::cout<<"4v";GameRecord[11]++;return Move;}//	    {MovesBoard[x+1][y+1]++; MovesBoard[x][y+1]++;}
+	    {Move.x1=x;Move.y1=y+1; Move.x2=x+1;Move.y2=y+1;std::cout<<"4v";GameRecord[0][11]++;return Move;}//	    {MovesBoard[x+1][y+1]++; MovesBoard[x][y+1]++;}
 	  //	    {Move.x1=x+1;Move.y1=y+1; Move.x2=x;Move.y2=y+1;std::cout<<"4v";return Move;}//	    {MovesBoard[x+1][y+1]++; MovesBoard[x][y+1]++;}
 	  //pattern 7 vertical
 	  /* 10
 	     10
 	     01   */
 	  if ( A[x][y]==A[x][y+1] && A[x+1][y+2]==A[x][y] )
-	    {Move.x1=x;Move.y1=y+2; Move.x2=x+1;Move.y2=y+2;std::cout<<"7v";GameRecord[14]++;return Move;}//}	    {MovesBoard[x][y+2]++; MovesBoard[x+1][y+2]++;std::cout<<"7v";}
+	    {Move.x1=x;Move.y1=y+2; Move.x2=x+1;Move.y2=y+2;std::cout<<"7v";GameRecord[0][14]++;return Move;}//}	    {MovesBoard[x][y+2]++; MovesBoard[x+1][y+2]++;std::cout<<"7v";}
 	}
       if (x<7 && y<6)
 	{
 	  if ( A[x][y]==A[x+1][y+1] && A[x+1][y+2]==A[x][y] )
-	    {Move.x1=x+1;Move.y1=y; Move.x2=x;Move.y2=y;std::cout<<"5v";GameRecord[12]++;return Move;}//; }		{MovesBoard[x][y-1]++; MovesBoard[x-1][y-1]++;std::cout<<"5v";}
+	    {Move.x1=x+1;Move.y1=y; Move.x2=x;Move.y2=y;std::cout<<"5v";GameRecord[0][12]++;return Move;}//; }		{MovesBoard[x][y-1]++; MovesBoard[x-1][y-1]++;std::cout<<"5v";}
 	  //	    {Move.x1=x;Move.y1=y; Move.x2=x+1;Move.y2=y;std::cout<<"5v";return Move;}//; }		{MovesBoard[x][y-1]++; MovesBoard[x-1][y-1]++;std::cout<<"5v";}
 	  if ( A[x+1][y]==A[x][y+1] && A[x+1][y]==A[x][y+2] )
-	    {Move.x1=x;Move.y1=y; Move.x2=x+1;Move.y2=y;std::cout<<"6v";GameRecord[13]++;return Move;}//}	    {MovesBoard[x][y-1]++; MovesBoard[x+1][y-1]++;std::cout<<"6v";}
+	    {Move.x1=x;Move.y1=y; Move.x2=x+1;Move.y2=y;std::cout<<"6v";GameRecord[0][13]++;return Move;}//}	    {MovesBoard[x][y-1]++; MovesBoard[x+1][y-1]++;std::cout<<"6v";}
 	  if ( A[x+1][y]==A[x+1][y+1] && A[x][y+2]==A[x+1][y] )
-	    {Move.x1=x+1;Move.y1=y+2; Move.x2=x;Move.y2=y+2;std::cout<<"8v";GameRecord[15]++;return Move;}//}	{MovesBoard[x][y+2]++; MovesBoard[x-1][y+2]++;std::cout<<"8v";}
+	    {Move.x1=x+1;Move.y1=y+2; Move.x2=x;Move.y2=y+2;std::cout<<"8v";GameRecord[0][15]++;return Move;}//}	{MovesBoard[x][y+2]++; MovesBoard[x-1][y+2]++;std::cout<<"8v";}
 	  //	    {Move.x1=x;Move.y1=y+2; Move.x2=x+1;Move.y2=y+2;std::cout<<"8v";return Move;}//}	{MovesBoard[x][y+2]++; MovesBoard[x-1][y+2]++;std::cout<<"8v";}
 	  if ( A[x+1][y]==A[x][y+1] && A[x+1][y]==A[x+1][y+2] )
-	    {Move.x1=x+1;Move.y1=y+1; Move.x2=x;Move.y2=y+1;std::cout<<"3v";GameRecord[10]++;return Move;}//}	{MovesBoard[x][y+1]++; MovesBoard[x-1][y+1]++;std::cout<<"3v";}
+	    {Move.x1=x+1;Move.y1=y+1; Move.x2=x;Move.y2=y+1;std::cout<<"3v";GameRecord[0][10]++;return Move;}//}	{MovesBoard[x][y+1]++; MovesBoard[x-1][y+1]++;std::cout<<"3v";}
 	  //	    {Move.x1=x;Move.y1=y+1; Move.x2=x+1;Move.y2=y+1;std::cout<<"3v";return Move;}//}	{MovesBoard[x][y+1]++; MovesBoard[x-1][y+1]++;std::cout<<"3v";}
 
 
