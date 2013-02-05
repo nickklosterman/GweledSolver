@@ -1547,7 +1547,6 @@ XYPair GetGweledScoresWindowOriginCoordinates()
   //NOTE: if a game was finished and the high score dialog clicked away, then it will persist and this command will still find one. 
   //I need to capture this output gracefully when there isn't a 'Gweled Scores' window
   string command="xwininfo -name 'Gweled Scores'  | grep Corners | awk '{print $2}' "; //this keeps printing out an error message when I run it if there isn't a 'Gweled Scores' window. Try a try/catch statement?
-  command="xwininfo -root -tree | grep 'Gweled Scores' -A 5 | grep Corners | awk '{print $2}' ";
   XYPair coords=GetWindowOriginCoordinates(command);
   return coords;
 }
