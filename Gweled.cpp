@@ -26,6 +26,7 @@
 
 #include <X11/keysym.h> //for fake keypress
 
+#include <sys/wait.h> //needed for AutoLaunchGweled
 
 using namespace std; 
 using namespace Magick; 
@@ -59,6 +60,7 @@ struct XYPair
   int x,y;
 };
 
+void AutoLaunchGweled();
 void initGameRecord(int (&g)[2][POSSIBLEMOVES]);
 void PrintGameRecord(int  [2][POSSIBLEMOVES]);
 void PerformMove(CoordPair Move);
@@ -132,6 +134,63 @@ XKeyEvent createKeyEvent(Display , Window, Window , bool ,int , int);
   185,185,185 white round bauble
 */
 
+void AutoLaunchGweled()
+{
+  // Open two pipes for communication
+  // The descriptors will be available to both
+  // parent and child.
+  int in_fd[2];
+  int out_fd[2];
+  int temp; //used to store value to get rid of warning messages
+  temp=pipe(in_fd);  // For child's stdin
+  temp=pipe(out_fd); // For child's stdout
+
+  // Fork
+  pid_t pid = fork();
+
+  if (pid == 0)
+    {
+      // We're in the child
+      close(out_fd[0]);
+      dup2(out_fd[1], STDOUT_FILENO);
+      close(out_fd[1]);
+
+      close(in_fd[1]);
+      dup2(in_fd[0], STDIN_FILENO);
+      close(in_fd[0]);
+
+      // Now, launch your child whichever way you want
+      // see eg. man 2 exec for this.
+      execv("/usr/bin/gweled",NULL);
+
+      _exit(0); // If you must exit manually, use _exit, not exit.
+      // If you use exec, I think you don't have to. Check manpages.
+    }
+
+  else if (pid == -1)
+    ; // Handle the error with fork
+
+  else
+    {
+      // You're in the parent
+      close(out_fd[1]);
+      close(in_fd[0]);
+
+      // Now you can read child's stdout with out_fd[0]
+      // and write to its stdin with in_fd[1].
+      // See man 2 read and man 2 write.
+
+      // ...
+
+      // Wait for the child to terminate (or it becomes a zombie)
+      //int status ;
+      //      waitpid(pid, &status, 0);
+
+        // see man waitpid for what to do with status
+    } 
+}
+
+
 void initGameRecord(int (&GameRecord)[2][POSSIBLEMOVES])
 {
   for (int i=0; i<POSSIBLEMOVES;i++)
@@ -150,7 +209,7 @@ int main(int argc,char **argv)
   
   int GameRecord[2][POSSIBLEMOVES]; //first element is used moves, second element is possible moves
 
-
+  //  AutoLaunchGweled(); // the waitpid lines need to be uncommented but that prevents execution of subsequent code until that code is passed.
 
   PID=GetWindowPID(/*gameboardsize*/);//get PID of window for Gweled
 #if DEBUGPRINT_0 
@@ -1475,9 +1534,10 @@ XYPair GetGameBoardOriginCoordinates()
 
 XYPair GetGameOverWindowOriginCoordinates()
 {
-  string command="xwininfo -root -tree | grep Gweled | grep 'has no name' | awk '{print $8}' ";
+  string command="xwininfo -root -tree | grep [gG]weled | grep 'has no name' | awk '{print $8}' ";
   XYPair coords=GetWindowOriginCoordinates(command);
-  coords.x=-99;  coords.y=-99;
+  //  coords.x=-99;  coords.y=-99; // remove this if you don't want it overridden.
+  //std::cout<<"coords.x"<<coords.x<<" coords.y"<<coords.y<<std::endl;
   return coords;
 }
 
@@ -1486,7 +1546,8 @@ XYPair GetGweledScoresWindowOriginCoordinates()
 {
   //NOTE: if a game was finished and the high score dialog clicked away, then it will persist and this command will still find one. 
   //I need to capture this output gracefully when there isn't a 'Gweled Scores' window
-  string command="xwininfo -name 'Gweled Scores'  | grep Corners | awk '{print $2}' ";
+  string command="xwininfo -name 'Gweled Scores'  | grep Corners | awk '{print $2}' "; //this keeps printing out an error message when I run it if there isn't a 'Gweled Scores' window. Try a try/catch statement?
+  command="xwininfo -root -tree | grep 'Gweled Scores' -A 5 | grep Corners | awk '{print $2}' ";
   XYPair coords=GetWindowOriginCoordinates(command);
   return coords;
 }
