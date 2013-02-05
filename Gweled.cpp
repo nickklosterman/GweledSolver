@@ -15,6 +15,9 @@
 //need an array copy constructor since will need separate copy of game board for subsequent calls
 //-->it looks like it might be easiest to just drop using arrays and use vectors. Then need to convert all [x][y] --> [x+y*CELLWIDTH]
 //save gamerecord to database     
+//I would assume that the color codes would be constant across platforms etc of the jewels but trying it out on bignicky on Tue Feb  5 03:00:35 EST 2013 caused a failure bc all the colors were diff. wtf. was there an update to gweled?
+
+
 
 #include "/usr/include/GraphicsMagick/Magick++.h"
 #include <iostream> 
@@ -47,9 +50,10 @@ using namespace Magick;
 #define SENTINEL 'X'
 #define WINDOWCOORDSENTINEL -99
 
-#define MENUBAROFFSET 25  // 25 on icewm on arch, 27px on icewm for ubuntu. hmmm that sux... This is the height in pixels of the menu in the OS you are running. If you run ./GweledMarkCells and open the image in Gimp, find the number of pixels from the top to the first cell (don't count the border). Using GweledMarkCells should write to GweledMediumMarked.png. In Gimp the menu won't be there. It'll be transparent pixels. Count those and there might be a 1 px border color that needs to be counted as well. 
+#define MENUBAROFFSET 25 // 25 on icewm on arch, 27px on icewm for ubuntu. hmmm that sux... This is the height in pixels of the menu in the OS you are running. If you run ./GweledMarkCells and open the image in Gimp, find the number of pixels from the top to the first cell (don't count the border). Using GweledMarkCells should write to GweledMediumMarked.png. In Gimp the menu won't be there. It'll be transparent pixels. Count those and there might be a 1 px border color that needs to be counted as well. 
+//22 on icewm on bignicky
 //TODO ::: for all these different configurations, have a command line switch or json/xml file that can be ingested to set these variables. that way it doesn't require a recompile for each system. 
-
+//----> can get rid of this because the Corner property defines the corner of the application window and not the chrome that the WM uses. so use Corners values and get rid of the MENUBAROFFSET
 #define POSSIBLEMOVES 16 //8 horizontal and 8 vertical moves possible
 
 struct CoordPair
@@ -214,16 +218,12 @@ int main(int argc,char **argv)
   if (1){
     std::cout<<"the following code isn't useful currently because we need to then click and start a new game. ";  
     AutoLaunchGweled(); // the waitpid lines need to be uncommented but that prevents execution of subsequent code until that code is passed.
-    XYPair myMove;
-    myMove.x=20;
-    myMove.y=90;//this needs to be changed based on the board size  Click the "new game button"
+    XYPair clickStart;
+    clickStart.x=40;
+    //myMove.y=90;//this needs to be changed based on the board size and board position Click the "new game button"
     //usleep(3000000);//so far reducing this breaks the program
-    sleep(4);  // this works. I guess the wait wasn't long enough. 
-    
-    MoveToCoordinatesAndClick( myMove);
-    std::cout<<"need to check if gweled all ready running and only auto launch if not running. ";
 
-  }
+    sleep(1); //needed otherwise we won't be able to grab the PID bc it hasn't spawned fully yet. 
   PID=GetWindowPID(/*gameboardsize*/);//get PID of window for Gweled
 #if DEBUGPRINT_0 
 
@@ -242,19 +242,36 @@ int main(int argc,char **argv)
     {
     case 0:
       wholecellpx=SMALL_CELL_SIZE;
+      clickStart.y=100;
       break;
     case 1:
       wholecellpx=MEDIUM_CELL_SIZE;
+      clickStart.y=180;
       break;
     case 2:
       wholecellpx=LARGE_CELL_SIZE;
+      clickStart.y=260;
       break;
     default:
       wholecellpx=SMALL_CELL_SIZE;
+      clickStart.y=131;
       break;
     }
   halfcellpx=wholecellpx/2;
+  PrintXYPair(clickStart);
+  XYPair origin=GetGameBoardOriginCoordinates();//need to update this every loop in case board was moved.       
+  PrintXYPair(origin);
+  clickStart.x+=origin.x;
+  clickStart.y+=origin.y;//+MENUBAROFFSET;  if you use Coreners then you don't need to use the offset.
+  PrintXYPair(clickStart); 
+  MoveToCoordinatesAndClick( clickStart);
+    //    std::cout<<"the move should've happened now";
+    //std::cout.flush();
+    
+    //std::cout<<"need to check if gweled all ready running and only auto launch if not running. ";
+    //    std::cout.flush();
 
+  }
   initGameRecord( GameRecord );
 
   // Construct the image object. Separating image construction from the 
@@ -263,6 +280,9 @@ int main(int argc,char **argv)
 
   Image image;
   bool GameOverFlag=false;
+  //sleep(1);  // this works. I guess the wait wasn't long enough. 
+  //sleep(1);
+  //sleep(1); //adding separatate seleep calls doesn't help. 
   while (!GameOverFlag) //set me to true for an inf loop once we figure out how to make the game play ad nauseum without stopping for clearing game over/scores etc.
     {
       
@@ -369,7 +389,7 @@ int main(int argc,char **argv)
 		    temp='R';
 		    break;
 		  case 218:
-		    GameOverFlag=true;
+		    //		    GameOverFlag=true;
 		    std::cout<<"G.O.";
 		    break;
 		  default:
@@ -1522,6 +1542,7 @@ XYPair GetGameBoardOriginCoordinates()
 	{ 
 	  info.append(buffer); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
 	}
+      std::cout<<"Corners:"<<info;
       pclose(in);
       // Corners:  +2+787  -968+787  -968-106  +2-106
       // info should hold : +2+787
@@ -1641,6 +1662,7 @@ int GetGameBoardSize()
 	  info.append(buffer); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
 	}
       pclose(in);
+      std::cout<<"geometry"<<info;
       if (info.rfind("269x319")!=string::npos||info.rfind("256x323")!=string::npos) //was 256x323 (ubuntu icewm) 269x319 (arch icewm)
 	{
 #if DEBUGPRINT_0
@@ -1648,7 +1670,8 @@ int GetGameBoardSize()
 #endif
 	  returnval= 0;
 	}
-      else if (info.rfind("384x447")!=string::npos||info.rfind("384x451")!=string::npos) //was 384x451(ubuntu icewm) 383x447(arch icewm)
+      //      else if (info.rfind("384x447")!=string::npos||info.rfind("384x451")!=string::npos) //was 384x451(ubuntu icewm) 383x447(arch icewm) //have also seen 384x441
+      else if (info.rfind("384x")!=string::npos) //was 384x451(ubuntu icewm) 383x447(arch icewm)
 	{
 #if DEBUGPRINT_0
 	  std::cout<<"Medium Board"<<std::endl;
@@ -1747,8 +1770,7 @@ void mouseClick(int button)
   
   if(XSendEvent(display, PointerWindow, True, 0xfff, &event) == 0) fprintf(stderr, "Error\n");
   
-  XFlush(display);
-  
+  //  XFlush(display);
   XCloseDisplay(display);
 }
 
