@@ -2,7 +2,7 @@
 #include <unistd.h>
 // Include some other things I forgot. See manpages.
 #include <sys/wait.h>
-
+#include <iostream>
 int main()
 {
   // Open two pipes for communication
@@ -16,7 +16,7 @@ int main()
 
   // Fork
   pid_t pid = fork();
-
+  std::cout<<"pid:"<<pid;
   if (pid == 0)
     {
       // We're in the child
@@ -27,7 +27,7 @@ int main()
       close(in_fd[1]);
       dup2(in_fd[0], STDIN_FILENO);
       close(in_fd[0]);
-
+      std::cout<<"woohoo";
       // Now, launch your child whichever way you want
       // see eg. man 2 exec for this.
       execv("/usr/bin/gweled",NULL);
@@ -41,6 +41,7 @@ int main()
 
   else
     {
+      std::cout<<"in parent";
       // You're in the parent
       close(out_fd[1]);
       close(in_fd[0]);
@@ -53,7 +54,7 @@ int main()
 
       // Wait for the child to terminate (or it becomes a zombie)
       int status ;
-      waitpid(pid, &status, 0);
+      //      waitpid(pid, &status, 0);
 
         // see man waitpid for what to do with status
     } 

@@ -20,6 +20,7 @@
 #include <iostream> 
 #include <cstring> //for memset
 #include <unistd.h> //for usleep
+#include <time.h> //for sleep 
 
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>  //add on -lX11 to compile command
@@ -183,10 +184,11 @@ void AutoLaunchGweled()
       // ...
 
       // Wait for the child to terminate (or it becomes a zombie)
-      //int status ;
+      
+      int status ;
       //      waitpid(pid, &status, 0);
 
-        // see man waitpid for what to do with status
+      // see man waitpid for what to do with status
     } 
 }
 
@@ -208,9 +210,20 @@ int main(int argc,char **argv)
   int halfcellpx,wholecellpx;
   
   int GameRecord[2][POSSIBLEMOVES]; //first element is used moves, second element is possible moves
+ 
+  if (1){
+    std::cout<<"the following code isn't useful currently because we need to then click and start a new game. ";  
+    AutoLaunchGweled(); // the waitpid lines need to be uncommented but that prevents execution of subsequent code until that code is passed.
+    XYPair myMove;
+    myMove.x=20;
+    myMove.y=90;//this needs to be changed based on the board size  Click the "new game button"
+    //usleep(3000000);//so far reducing this breaks the program
+    sleep(4);  // this works. I guess the wait wasn't long enough. 
+    
+    MoveToCoordinatesAndClick( myMove);
+    std::cout<<"need to check if gweled all ready running and only auto launch if not running. ";
 
-  //  AutoLaunchGweled(); // the waitpid lines need to be uncommented but that prevents execution of subsequent code until that code is passed.
-
+  }
   PID=GetWindowPID(/*gameboardsize*/);//get PID of window for Gweled
 #if DEBUGPRINT_0 
 
@@ -580,22 +593,22 @@ bool GameOver()
   if(coords2)
     {      std::cout<<"H.S coords";}
   /*
-  if (coords.x!=WINDOWCOORDSENTINEL && coords.y!=WINDOWCOORDSENTINEL) //this is the
+    if (coords.x!=WINDOWCOORDSENTINEL && coords.y!=WINDOWCOORDSENTINEL) //this is the
     {
-      std::cout<<"G.O coords:";
-      PrintXYPair(coords);
-      flag= true;
+    std::cout<<"G.O coords:";
+    PrintXYPair(coords);
+    flag= true;
       
-      std::cout<<"after return statment for G.O.";
+    std::cout<<"after return statment for G.O.";
     }
-  //  coords=GetGweledScoresWindowOriginCoordinates();
-  if (coords.x!=WINDOWCOORDSENTINEL && coords.y!=WINDOWCOORDSENTINEL)
+    //  coords=GetGweledScoresWindowOriginCoordinates();
+    if (coords.x!=WINDOWCOORDSENTINEL && coords.y!=WINDOWCOORDSENTINEL)
     {
-      std::cout<<"H.S. coords:";
-      PrintXYPair(coords);
-      flag= true;
+    std::cout<<"H.S. coords:";
+    PrintXYPair(coords);
+    flag= true;
       
-      std::cout<<"after return statment for H.S.";
+    std::cout<<"after return statment for H.S.";
     }
   */
   //  std::cout<<"coords"<<coords<<"coords2"<<coords2;
@@ -634,9 +647,9 @@ void PrintBoardChar(char Board[CELL_WIDTH][CELL_HEIGHT],int W,int H)
 void PrintGameRecord(int GameRecord[0][POSSIBLEMOVES])
 {
   /*  for (int i=0;i<POSSIBLEMOVES;i++)
-    {
+      {
       
-    }
+      }
   */
   //plot in a nice row format with | delimiters H,Z heading and 123435678 down the side?
   std::cout<<"1h:"<<GameRecord[0][0]<<" of "<<GameRecord[1][0]<<std::endl;
