@@ -1,0 +1,84 @@
+<!-- <html>
+<head>
+<script src="http://code.jquery.com/jquery-1.9.1.min.js"></script>
+<script type="text/javascript">
+
+
+</script>
+<style>
+
+
+</style>
+</head>
+
+<body>
+niggahz
+
+
+</body>
+</html> -->
+
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+p { color:red; margin:5px; cursor:pointer; }
+p:hover { background:yellow; }
+
+.two { color: red;}
+#dstuff { color: blue;}
+.myClass { color: green;}
+#d { height: 200px; background: yellow;}
+.clicky { background: blue; }
+#b:hover {background:blue;}
+</style>
+<script src="http://code.jquery.com/jquery-latest.js"></script>
+</head>
+<body>
+<div id="stuff">stuff</div>
+<p>First Paragraph</p>
+<p>Second Paragraph</p>
+<p>Yet one more Paragraph</p>
+<div id='d'> test1</div>
+<div id='d'> test2</div>
+<div id='d'> test3</div>
+<div id='d'> test4</div>
+<div id='d'> test5</div>
+<div id='d'> test6</div>
+<div id='d'> test7</div>
+<script>
+
+$("#stuff").click(function () {
+//alert("stuffclick");
+$(this).html("bitch");
+$(this).addClass("two");
+//$("#stuff").addClass("myClass");
+});
+
+//why does this not work here? it works here: http://api.jquery.com/css/
+$("#d").hover(function () {
+$(this).css("background","red");
+});
+
+$("#d").mouseleave(function() { 
+$(this).css("background","yellow");
+});
+
+$("#d").click(function() {
+$(this).slideUp();
+});
+
+$("#dd").click(function () { 
+//$("p").addClass("clicky");
+$(this).css("background","green");
+$(this).slideUp();
+});
+
+$("p").click(function () {
+$(this).addClass("myClass yourClass"); //slideUp();
+$("#stuff").addClass("two");
+});
+
+</script>
+</body>
+</html>
