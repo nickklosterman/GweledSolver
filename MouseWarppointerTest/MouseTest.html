@@ -22,30 +22,34 @@ niggahz
 <html>
 <head>
 <style>
+
+
 p { color:red; margin:5px; cursor:pointer; }
 p:hover { background:yellow; }
 
 .two { color: red;}
 #dstuff { color: blue;}
 .myClass { color: green;}
-#d { height: 200px; background: yellow;}
+.d { height: 200px; background: yellow;}
 .clicky { background: blue; }
 #b:hover {background:blue;}
 </style>
 <script src="http://code.jquery.com/jquery-latest.js"></script>
 </head>
 <body>
+ids are unique, so if multiple elements with same id it'll only get first one. 
+to tag multiple elements, use classes. 
 <div id="stuff">stuff</div>
 <p>First Paragraph</p>
 <p>Second Paragraph</p>
 <p>Yet one more Paragraph</p>
-<div id='d'> test1</div>
-<div id='d'> test2</div>
-<div id='d'> test3</div>
-<div id='d'> test4</div>
-<div id='d'> test5</div>
-<div id='d'> test6</div>
-<div id='d'> test7</div>
+<div class='d'> test1</div>
+<div class='d'> test2</div>
+<div class='d'> test3</div>
+<div class='d'> test4</div>
+<div class='d'> test5</div>
+<div class='d'> test6</div>
+<div class='d'> test7</div>
 <script>
 
 $("#stuff").click(function () {
@@ -56,19 +60,19 @@ $(this).addClass("two");
 });
 
 //why does this not work here? it works here: http://api.jquery.com/css/
-$("#d").hover(function () {
+$(".d").hover(function () {
 $(this).css("background","red");
 });
 
-$("#d").mouseleave(function() { 
+$(".d").mouseleave(function() { 
 $(this).css("background","yellow");
 });
 
-$("#d").click(function() {
+$(".d").click(function() {
 $(this).slideUp();
 });
 
-$("#dd").click(function () { 
+$("#d").click(function () { 
 //$("p").addClass("clicky");
 $(this).css("background","green");
 $(this).slideUp();
