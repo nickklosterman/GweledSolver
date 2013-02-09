@@ -1912,3 +1912,16 @@ int SpaceFakeKeyPress()
    generally be avoided for everything else.
 
 */
+
+Class GweledSolver 
+{
+ private: 
+  int GameBoardCellSize; 
+  int SetGameBoardCellSize();
+  XYPair screen_coords;
+  XYPair GetGameBoardOriginCoordinates();//need to update this every loop in case board was moved.       
+
+public:
+
+
+}
