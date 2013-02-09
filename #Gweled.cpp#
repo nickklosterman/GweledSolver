@@ -28,7 +28,7 @@
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>  //add on -lX11 to compile command
 
-//#include <X11/keysym.h> //for fake keypress
+#include <X11/keysym.h> //for fake keypress
 
 #include <sys/wait.h> //needed for AutoLaunchGweled
 
@@ -1912,3 +1912,16 @@ int SpaceFakeKeyPress()
    generally be avoided for everything else.
 
 */
+
+Class GweledSolver 
+{
+ private: 
+  int GameBoardCellSize; 
+  int SetGameBoardCellSize();
+  XYPair screen_coords;
+  XYPair GetGameBoardOriginCoordinates();//need to update this every loop in case board was moved.       
+
+public:
+
+
+}
