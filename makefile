@@ -1,5 +1,7 @@
+INCLUDE=-I/usr/include/GraphicsMagick/ 
 CC=g++
-CFLAGS=-c -Wall -O2 -o `GraphicsMagick++-config --cppflags --cxxflags --ldflags --libs` -I/usr/include/GraphicsMagick/ -lX11 
+CFLAGS=-O2 -o ${INCLUDES}
+LIBS=`GraphicsMagick++-config --cppflags --cxxflags --ldflags --libs` -lX11 
 LDFLAGS=
 SOURCES=Gweled.cpp 
 OBJECTS=$(SOURCES:.cpp=.o)
@@ -9,11 +11,11 @@ EXECUTABLE=Gweled
 all: $(SOURCES) $(EXECUTABLE)
 
 $(EXECUTABLE): $(OBJECTS)
-	$(CC) $(LDFLAGS) $(OBJECTS) -o $@
+	$(CC) $(LDFLAGS) $(OBJECTS) -o $@ $(LIBS)
 
 .cpp.o:
 	$(CC) $(CFLAGS) $< -o $@
 
 
 clean:
-	rm -f main $(OBJECTS)
+	rm -f core $(OBJECTS)
