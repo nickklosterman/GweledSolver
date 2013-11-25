@@ -72,7 +72,7 @@ void PerformMove(CoordPair Move);
 void MoveToCoordinatesAndClick(XYPair Move);
 void mouseClick(int button);
 void PrintXYPair(XYPair xy);
-XYPair GetGameBoardOriginCoordinates();
+
 CoordPair TopMostMove(const int A[CELL_WIDTH][CELL_HEIGHT] );
 CoordPair AnalyzeBoard( char [CELL_WIDTH][CELL_HEIGHT] );
 void AnalyzeBoardv2( char [CELL_WIDTH][CELL_HEIGHT],int (&g)[2][POSSIBLEMOVES] );
@@ -80,10 +80,13 @@ template < class T > void PrintBoard( T*,int, int );// [CELL_WIDTH][CELL_HEIGHT]
 CoordPair AnalyzeBoardSingle( char [CELL_WIDTH][CELL_HEIGHT] );
 CoordPair AnalyzeBoardSingleMatch( char [CELL_WIDTH][CELL_HEIGHT], int (&g)[2][POSSIBLEMOVES] );
 void PrintMove(CoordPair);
+bool CheckCoordsForSentinel(XYPair );
+
+bool GameOver();
+
+XYPair GetGameBoardOriginCoordinates();
 string GetWindowPID( /*int*/ );
 CoordPair GetWindowCoords(int );
-bool CheckCoordsForSentinel(XYPair );
-bool GameOver();
 
 int GetGameBoardSize();
 XYPair ConvertMoveToScreenCoordinates(XYPair,CoordPair,int,int);
@@ -1352,47 +1355,6 @@ void PrintMove( CoordPair Move)
   std::cout<<"Move from ["<<Move.x1+1<<"]["<<Move.y1+1<<"] to ["<<Move.x2+1<<"]["<<Move.y2+1<<"]."<<std::endl;
 }
 
-string GetWindowPID(/*int boardsize*/)
-{ 
-  string PID="x:";
-  char temp[BUFFERLENGTH];
-  FILE *in;
-  //  string command="xwininfo -name Gweled |  grep xwininfo | awk '{print $4}'";//"xwininfo -root -tree | grep gweled | grep ";
-  string command="xwininfo -name Gweled |  grep Gweled | awk '{print $4}'";
-  /*  switch (boardsize)
-      {
-      case 0:
-      command.append(WINDOWSIZE_SMALL);
-      break;
-      case 1:
-      command.append(WINDOWSIZE_MEDIUM);
-      break;
-      case 2:
-      command.append(WINDOWSIZE_LARGE);
-      break;
-      default:
-      command.append(WINDOWSIZE_SMALL);
-      }
-      command.append(" | awk '{ print $1 }'");*/
-  //  if ((in = popen("xwininfo -root -tree | grep gweled | grep 256x323 | awk '{ print $1 }'","r")))
-
-
-  if ((in = popen(command.c_str(),"r")))
-    { 
-      while (fgets(temp, sizeof(temp), in)!=NULL)
-	{ 
-	  //printf("%c",temp);//I think printing it out screws up the buffer so you can't print out and capture together
-	  PID.append(temp); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
-	}
-      pclose(in);
-#if DEBUGPRINT_0 
-      std::cout<<PID<<std::endl;
-#endif
-      return PID.substr(0,PID.length()-1);
-    }
-  else
-    return "PHAIL";
-}
 
 XYPair ConvertMoveToScreenCoordinates(XYPair origin, CoordPair move,int whole_cell_size,int set)
 {
@@ -1530,101 +1492,6 @@ void MovePiecesOnBoard(char A[CELL_WIDTH][CELL_HEIGHT] ,CoordPair move)
     }
 }
 
-XYPair GetGameBoardOriginCoordinates()
-{
-  XYPair coords; coords.x=-1;coords.y=-1;
-  char buffer[BUFFERLENGTH];
-  string info;
-  FILE *in;
-  if ((in = popen("xwininfo -name Gweled | grep Corners | awk '{print $2}' ","r")))
-    { 
-      while (fgets(buffer, sizeof(buffer), in)!=NULL)
-	{ 
-	  info.append(buffer); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
-	}
-      std::cout<<"Corners:"<<info;
-      pclose(in);
-      // Corners:  +2+787  -968+787  -968-106  +2-106
-      // info should hold : +2+787
-      int plus_pos=info.rfind("+");
-      if (plus_pos!=int(string::npos)) //reverse find , wo the int() casting we are comparing unsigned and signed ints
-	{
-	  //	  std::cout<<info.substr(1,plus_pos-1)<<std::endl<<info.substr(plus_pos+1,info.length())<<std::endl;
-	  string temp=info.substr(1,plus_pos-1);
-	  coords.x=atoi(temp.c_str());//one off from beginning to (info.rfind("+");
-	  temp=info.substr(plus_pos+1,info.length());
-	  coords.y=atoi(temp.c_str());//info.substr(plus_pos+1,info.length()));
-#if DEBUGPRINT_2
-	  printf("Board Coordinates %d,%d",coords.x,coords.y); //need to add in offset
-#endif
-	  int xoffset=0;
-	  int yoffset=27;
-	  coords.x+=xoffset;
-	  coords.y+=yoffset;
-	}
-    }
-  return coords;
-}
-
-XYPair GetGameOverWindowOriginCoordinates()
-{
-  string command="xwininfo -root -tree | grep [gG]weled | grep 'has no name' | awk '{print $8}' ";
-  XYPair coords=GetWindowOriginCoordinates(command);
-  //  coords.x=-99;  coords.y=-99; // remove this if you don't want it overridden.
-  //std::cout<<"coords.x"<<coords.x<<" coords.y"<<coords.y<<std::endl;
-  return coords;
-}
-
-
-XYPair GetGweledScoresWindowOriginCoordinates()
-{
-  //NOTE: if a game was finished and the high score dialog clicked away, then it will persist and this command will still find one. 
-  //I need to capture this output gracefully when there isn't a 'Gweled Scores' window
-  string command="xwininfo -name 'Gweled Scores'  | grep Corners | awk '{print $2}' "; //this keeps printing out an error message when I run it if there isn't a 'Gweled Scores' window. Try a try/catch statement?
-  XYPair coords=GetWindowOriginCoordinates(command);
-  return coords;
-}
-
-XYPair GetWindowOriginCoordinates(string command)
-{
-  XYPair coords; coords.x=-1;coords.y=-1;
-  char buffer[BUFFERLENGTH];
-  string info;
-  FILE *in;
-  
-  if ((in = popen(command.c_str(),"r")))
-    { 
-      while (fgets(buffer, sizeof(buffer), in)!=NULL)
-	{ 
-	  info.append(buffer); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
-	}
-      pclose(in);
-
-      int plus_pos=info.rfind("+");
-      if (plus_pos!=int(string::npos)) //reverse find , wo the int() casting we are comparing unsigned and signed ints
-	{
-	  //	  std::cout<<info.substr(1,plus_pos-1)<<std::endl<<info.substr(plus_pos+1,info.length())<<std::endl;
-	  string temp=info.substr(1,plus_pos-1);
-	  coords.x=atoi(temp.c_str());//one off from beginning to (info.rfind("+");
-	  temp=info.substr(plus_pos+1,info.length());
-	  coords.y=atoi(temp.c_str());//info.substr(plus_pos+1,info.length()));
-#if DEBUGPRINT_2
-	  printf("Board Coordinates %d,%d",coords.x,coords.y); //need to add in offset
-#endif
-	  int xoffset=0;
-	  int yoffset=27;
-	  coords.x+=xoffset;
-	  coords.y+=yoffset;
-	}
-      else 
-	{
-
-	  coords.x=WINDOWCOORDSENTINEL;
-	  coords.y=WINDOWCOORDSENTINEL;
-	}
-    }
-  return coords;
-}
 
 XYPair GetCoords(CoordPair CP,int set)
 {
@@ -1647,49 +1514,6 @@ void PrintXYPair(XYPair xy)
   printf(" %d, %d\n",xy.x,xy.y);
 }
 
-int GetGameBoardSize()
-{ 
-  string info="";
-  char buffer[BUFFERLENGTH];
-  FILE *in;
-  int  returnval=-1;
-  //  if ((in = popen("xwininfo -root -tree | grep gweled","r"))) //method 1 
-  if ((in = popen("xwininfo -name Gweled | grep geometry","r"))) //method 2 
-    { 
-
-      while (fgets(buffer, sizeof(buffer), in)!=NULL)
-	{ 
-	  info.append(buffer); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
-	}
-      pclose(in);
-      std::cout<<"geometry"<<info;
-      if (info.rfind("269x319")!=string::npos||info.rfind("256x323")!=string::npos) //was 256x323 (ubuntu icewm) 269x319 (arch icewm)
-	{
-#if DEBUGPRINT_0
-	  std::cout<<"Small Board"<<std::endl;
-#endif
-	  returnval= 0;
-	}
-      //      else if (info.rfind("384x447")!=string::npos||info.rfind("384x451")!=string::npos) //was 384x451(ubuntu icewm) 383x447(arch icewm) //have also seen 384x441
-      else if (info.rfind("384x")!=string::npos) //was 384x451(ubuntu icewm) 383x447(arch icewm)
-	{
-#if DEBUGPRINT_0
-	  std::cout<<"Medium Board"<<std::endl;
-#endif
-	  returnval= 1;
-	}
-      else if (info.rfind("512x575")!=string::npos||info.rfind("512x579")!=string::npos) //was 512x579(ubuntu icewm) 512x575 (arch icewm)
-	{
-#if DEBUGPRINT_0
-	  std::cout<<"Large Board"<<std::endl;
-#endif
-	  returnval= 2;
-	}
-    }
-  
-  return returnval;
-}
-
 XYPair ConvertGameBoardToScreenCoordinates(XYPair gameboardcoords,int whole_cell_size, XYPair movecoords)//not sure if need to use const,
 {
 
@@ -1708,27 +1532,7 @@ XYPair ConvertGameBoardToScreenCoordinates(XYPair gameboardcoords,int whole_cell
 #endif
   return screen_coords;
 }
-int SetGameBoardCellSize()
-{
-  int gameboardsize=GetGameBoardSize();
-  int wholecellpx=0; 
-  switch (gameboardsize)
-    {
-    case 0:
-      wholecellpx=SMALL_CELL_SIZE;
-      break;
-    case 1:
-      wholecellpx=MEDIUM_CELL_SIZE;
-      break;
-    case 2:
-      wholecellpx=LARGE_CELL_SIZE;
-      break;
-    default:
-      wholecellpx=SMALL_CELL_SIZE;
-      break;
-    }
-  return wholecellpx;
-}
+
 
 void mouseClick(int button)
 {
@@ -1774,7 +1578,6 @@ void mouseClick(int button)
   XCloseDisplay(display);
 }
 
-
 void MoveToCoordinatesAndClick(XYPair Move)
 {
   Display *display = XOpenDisplay(0);
@@ -1787,7 +1590,6 @@ void MoveToCoordinatesAndClick(XYPair Move)
   XCloseDisplay(display);
 	
 }
-
 
 void PerformMove(CoordPair Move)
 {
@@ -1913,6 +1715,272 @@ int SpaceFakeKeyPress()
 
 */
 
+
+#ifndef WINDOWPROPERTIES_H
+#define
+Class WindowProperties
+{
+ public: 
+  WindowProperties();
+  bool isGameOver();
+  bool isGweledScores();
+
+ private:
+  XYPair GameOverWindowCoordinates;
+  XYPair GweledScoresWindowCoordinates;
+  bool GameOverFlag;
+  bool GweledScoresFlag;
+  string PID;
+  
+  void WindowOriginCoordinates();
+  void GetGameBoardOriginCoordinates();
+  bool CheckforNonSentinelCoords(XYPair);
+
+  const string GameOverCommand="xwininfo -root -tree | grep [gG]weled | grep 'has no name' | awk '{print $8}' ";
+  const string GweledScoresCommand="xwininfo -name 'Gweled Scores'  | grep Corners | awk '{print $2}' "; //this keeps printing out an error message when I run it if there isn't a 'Gweled Scores' window. Try a try/catch statement?
+  const string GweledCommand="xwininfo -name Gweled |  grep Gweled | awk '{print $4}'"; 
+};
+#endif
+
+void WindowProperties::SetFlags()
+{
+
+GameOverFlag=CheckForNonSentinelCoords(GameOverWindowCoordinates);
+GweledScoresFlag=CheckForNonSentinelCoords(GweledScoresWindowCoordinates);
+
+}
+
+bool WindowProperties::CheckForNonSentinelCoords(XYPair C)
+{
+bool r;
+if (C.x==WINDOWCOORDSENTINEL && C.y==WINDOWCOORDSENTINEL) ? r=false : r=true;
+return r;
+}
+
+WindowProperties::GetWindowPID(string C )
+{ 
+  //  string PID="x:";
+  char temp[BUFFERLENGTH];
+  FILE *in;
+  //  string command="xwininfo -name Gweled |  grep xwininfo | awk '{print $4}'";//"xwininfo -root -tree | grep gweled | grep ";
+  string command=C
+
+  if ((in = popen(command.c_str(),"r")))
+    { 
+      while (fgets(temp, sizeof(temp), in)!=NULL)
+	{ 
+	  //printf("%c",temp);//I think printing it out screws up the buffer so you can't print out and capture together
+	  PID.append(temp); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
+	}
+      pclose(in);
+#if DEBUGPRINT_0 
+      std::cout<<PID<<std::endl;
+#endif
+      return PID.substr(0,PID.length()-1);
+    }
+  else
+    return "PHAIL";
+}
+
+WindowProperties::WindowProperties()
+{
+GweledScoresFlag=false;
+GameOverFlag=false
+GetWindowPID(GweledCommand);
+
+GetWindowOriginCoordinates();
+GetGweledScoresWindowOriginCoordinates();
+GetGameOverWindowOriginCoordinates();
+}
+
+void WindowProperties::GetGameOverWindowOriginCoordinates()
+{
+  string command=GameOverCommand;
+  XYPair coords=GetWindowOriginCoordinates(command);
+  GameOverScoresWindowCoordinates= coords;
+}
+
+
+void WindowProperties::GetGweledScoresWindowOriginCoordinates()
+{
+  //NOTE: if a game was finished and the high score dialog clicked away, then it will persist and this command will still find one. 
+  //I need to capture this output gracefully when there isn't a 'Gweled Scores' window
+  string command=GweledScoresCommand;
+  XYPair coords=GetWindowOriginCoordinates(command);
+  GweledScoresWindowCoordinates= coords;
+}
+
+
+void WindowProperties::GetGameBoardOriginCoordinates()
+{
+  XYPair coords; coords.x=-1;coords.y=-1;
+  char buffer[BUFFERLENGTH];
+  string info;
+  FILE *in;
+  if ((in = popen("xwininfo -name Gweled | grep Corners | awk '{print $2}' ","r")))
+    { 
+      while (fgets(buffer, sizeof(buffer), in)!=NULL)
+	{ 
+	  info.append(buffer); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
+	}
+      std::cout<<"Corners:"<<info;
+      pclose(in);
+      // Corners:  +2+787  -968+787  -968-106  +2-106
+      // info should hold : +2+787
+      int plus_pos=info.rfind("+");
+      if (plus_pos!=int(string::npos)) //reverse find , wo the int() casting we are comparing unsigned and signed ints
+	{
+	  //	  std::cout<<info.substr(1,plus_pos-1)<<std::endl<<info.substr(plus_pos+1,info.length())<<std::endl;
+	  string temp=info.substr(1,plus_pos-1);
+	  coords.x=atoi(temp.c_str());//one off from beginning to (info.rfind("+");
+	  temp=info.substr(plus_pos+1,info.length());
+	  coords.y=atoi(temp.c_str());//info.substr(plus_pos+1,info.length()));
+#if DEBUGPRINT_2
+	  printf("Board Coordinates %d,%d",coords.x,coords.y); //need to add in offset
+#endif
+	  int xoffset=0;
+	  int yoffset=27;
+	  coords.x+=xoffset;
+	  coords.y+=yoffset;
+	}
+    }
+GameBoardOriginCoordinates= coords;
+}
+
+void WindowProperties::GetWindowOriginCoordinates(string command)
+{
+  XYPair coords; coords.x=-1;coords.y=-1;
+  char buffer[BUFFERLENGTH];
+  string info;
+  FILE *in;
+  
+  if ((in = popen(command.c_str(),"r")))
+    { 
+      while (fgets(buffer, sizeof(buffer), in)!=NULL)
+	{ 
+	  info.append(buffer); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
+	}
+      pclose(in);
+
+      int plus_pos=info.rfind("+");
+      if (plus_pos!=int(string::npos)) //reverse find , wo the int() casting we are comparing unsigned and signed ints
+	{
+	  //	  std::cout<<info.substr(1,plus_pos-1)<<std::endl<<info.substr(plus_pos+1,info.length())<<std::endl;
+	  string temp=info.substr(1,plus_pos-1);
+	  coords.x=atoi(temp.c_str());//one off from beginning to (info.rfind("+");
+	  temp=info.substr(plus_pos+1,info.length());
+	  coords.y=atoi(temp.c_str());//info.substr(plus_pos+1,info.length()));
+#if DEBUGPRINT_2
+	  printf("Board Coordinates %d,%d",coords.x,coords.y); //need to add in offset
+#endif
+	  int xoffset=0;
+	  int yoffset=27;
+	  coords.x+=xoffset;
+	  coords.y+=yoffset;
+	}
+      else 
+	{
+
+	  coords.x=WINDOWCOORDSENTINEL;
+	  coords.y=WINDOWCOORDSENTINEL;
+	}
+    }
+  WindowOriginCoordinates= coords;
+}
+
+#ifndef GAMEBOARDPROPERTIES_H
+#define
+
+Class GameBoardProperties
+{
+ private: 
+  int GameBoardCellSize;//length, height in pixels
+  int GameBoardSize;
+  void SetGameBoardCellSize();
+  void GetGameBoardSize();
+
+ public:
+  int GetGameBoardCellSize();
+
+
+};
+#endif;
+GameBoardProperties::GameBoardProperties()
+{
+  GetGameBoardSize();
+  SetGameBoardCellSize();
+}
+int GameBoardProperties::GetGameBoardCellSize()
+{
+  return GameBoardCellSize;
+}
+
+//for a class should most of the return types be void? as in that is a sign that youre keeping things mostly internalized to the class?
+void GameBoardProperties::SetGameBoardCellSize()
+{
+  int wholecellpx=0; 
+  switch (GameBoardSize)
+    {
+    case 0:
+      wholecellpx=SMALL_CELL_SIZE;
+      break;
+    case 1:
+      wholecellpx=MEDIUM_CELL_SIZE;
+      break;
+    case 2:
+      wholecellpx=LARGE_CELL_SIZE;
+      break;
+    default:
+      wholecellpx=SMALL_CELL_SIZE;
+      break;
+    }
+  GameBoardCellSize=wholecellpx;
+}
+
+
+void GameBoardProperties::GetGameBoardSize()
+{ //should this code be done in a try catch block?
+  string info="";
+  char buffer[BUFFERLENGTH];
+  FILE *in;
+  int  returnval=-1;
+  //  if ((in = popen("xwininfo -root -tree | grep gweled","r"))) //method 1 
+  if ((in = popen("xwininfo -name Gweled | grep geometry","r"))) //method 2 
+    { 
+
+      while (fgets(buffer, sizeof(buffer), in)!=NULL)
+	{ 
+	  info.append(buffer); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
+	}
+      pclose(in);
+      std::cout<<"geometry"<<info;
+      if (info.rfind("269x319")!=string::npos||info.rfind("256x323")!=string::npos) //was 256x323 (ubuntu icewm) 269x319 (arch icewm)
+	{
+#if DEBUGPRINT_0
+	  std::cout<<"Small Board"<<std::endl;
+#endif
+	  returnval= 0;
+	}
+      //      else if (info.rfind("384x447")!=string::npos||info.rfind("384x451")!=string::npos) //was 384x451(ubuntu icewm) 383x447(arch icewm) //have also seen 384x441
+      else if (info.rfind("384x")!=string::npos) //was 384x451(ubuntu icewm) 383x447(arch icewm)
+	{
+#if DEBUGPRINT_0
+	  std::cout<<"Medium Board"<<std::endl;
+#endif
+	  returnval= 1;
+	}
+      else if (info.rfind("512x575")!=string::npos||info.rfind("512x579")!=string::npos) //was 512x579(ubuntu icewm) 512x575 (arch icewm)
+	{
+#if DEBUGPRINT_0
+	  std::cout<<"Large Board"<<std::endl;
+#endif
+	  returnval= 2;
+	}
+    }
+  
+  GameBoardSize = returnval;
+}
+
 Class GweledSolver 
 {
  private: 
@@ -1920,6 +1988,15 @@ Class GweledSolver
   int SetGameBoardCellSize();
   XYPair screen_coords;
   XYPair GetGameBoardOriginCoordinates();//need to update this every loop in case board was moved.       
+
+int GetGameBoardSize();
+XYPair ConvertMoveToScreenCoordinates(XYPair,CoordPair,int,int);
+XYPair ConvertGameBoardToScreenCoordinates(XYPair,int,XYPair);
+XYPair GetCoords(CoordPair,int);
+
+XYPair GetGameOverWindowOriginCoordinates();
+XYPair GetGweledScoresWindowOriginCoordinates();
+XYPair GetWindowOriginCoordinates(string ); 
 
 public:
 
