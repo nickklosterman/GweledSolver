@@ -227,47 +227,47 @@ int main(int argc,char **argv)
     //usleep(3000000);//so far reducing this breaks the program
 
     sleep(1); //needed otherwise we won't be able to grab the PID bc it hasn't spawned fully yet. 
-  PID=GetWindowPID(/*gameboardsize*/);//get PID of window for Gweled
+    PID=GetWindowPID(/*gameboardsize*/);//get PID of window for Gweled
 #if DEBUGPRINT_0 
 
-  std::cout<<"-"<<PID<<"-"<<std::endl;
+    std::cout<<"-"<<PID<<"-"<<std::endl;
 #endif
-  /*
-    XYPair origin;
-    origin=GetGameBoardOriginCoordinates();
-  */  gameboardsize=GetGameBoardSize();
+    /*
+      XYPair origin;
+      origin=GetGameBoardOriginCoordinates();
+    */  gameboardsize=GetGameBoardSize();
 
 
 #if DEBUGPRINT_0
-  std::cout<<"using Xwindowpid:"<<PID<<std::endl;
+    std::cout<<"using Xwindowpid:"<<PID<<std::endl;
 #endif
-  switch (gameboardsize)
-    {
-    case 0:
-      wholecellpx=SMALL_CELL_SIZE;
-      clickStart.y=100;
-      break;
-    case 1:
-      wholecellpx=MEDIUM_CELL_SIZE;
-      clickStart.y=180;
-      break;
-    case 2:
-      wholecellpx=LARGE_CELL_SIZE;
-      clickStart.y=260;
-      break;
-    default:
-      wholecellpx=SMALL_CELL_SIZE;
-      clickStart.y=131;
-      break;
-    }
-  halfcellpx=wholecellpx/2;
-  PrintXYPair(clickStart);
-  XYPair origin=GetGameBoardOriginCoordinates();//need to update this every loop in case board was moved.       
-  PrintXYPair(origin);
-  clickStart.x+=origin.x;
-  clickStart.y+=origin.y;//+MENUBAROFFSET;  if you use Coreners then you don't need to use the offset.
-  PrintXYPair(clickStart); 
-  MoveToCoordinatesAndClick( clickStart);
+    switch (gameboardsize)
+      {
+      case 0:
+	wholecellpx=SMALL_CELL_SIZE;
+	clickStart.y=100;
+	break;
+      case 1:
+	wholecellpx=MEDIUM_CELL_SIZE;
+	clickStart.y=180;
+	break;
+      case 2:
+	wholecellpx=LARGE_CELL_SIZE;
+	clickStart.y=260;
+	break;
+      default:
+	wholecellpx=SMALL_CELL_SIZE;
+	clickStart.y=131;
+	break;
+      }
+    halfcellpx=wholecellpx/2;
+    PrintXYPair(clickStart);
+    XYPair origin=GetGameBoardOriginCoordinates();//need to update this every loop in case board was moved.       
+    PrintXYPair(origin);
+    clickStart.x+=origin.x;
+    clickStart.y+=origin.y;//+MENUBAROFFSET;  if you use Coreners then you don't need to use the offset.
+    PrintXYPair(clickStart); 
+    MoveToCoordinatesAndClick( clickStart);
     //    std::cout<<"the move should've happened now";
     //std::cout.flush();
     
@@ -1717,8 +1717,8 @@ int SpaceFakeKeyPress()
 
 
 #ifndef WINDOWPROPERTIES_H
-#define
-Class WindowProperties
+#define WINDOWPROPERTIES_H
+class WindowProperties
 {
  public: 
   WindowProperties();
@@ -1728,13 +1728,23 @@ Class WindowProperties
  private:
   XYPair GameOverWindowCoordinates;
   XYPair GweledScoresWindowCoordinates;
+  XYPair GameBoardOriginCoordinates;
+
+  XYPair WindowOriginCoordinates;
   bool GameOverFlag;
   bool GweledScoresFlag;
   string PID;
   
-  void WindowOriginCoordinates();
+  XYPair GetWindowOriginCoordinates(string);
   void GetGameBoardOriginCoordinates();
-  bool CheckforNonSentinelCoords(XYPair);
+  bool CheckforNonSentinelCoords();
+  void SetFlags();
+  bool CheckForNonSentinelCoords(XYPair);
+  string/*int*/ GetWindowPID(string ); // 
+  void GetGameOverWindowOriginCoordinates();
+  void GetGweledScoresWindowOriginCoordinates();
+
+
 
   const string GameOverCommand="xwininfo -root -tree | grep [gG]weled | grep 'has no name' | awk '{print $8}' ";
   const string GweledScoresCommand="xwininfo -name 'Gweled Scores'  | grep Corners | awk '{print $2}' "; //this keeps printing out an error message when I run it if there isn't a 'Gweled Scores' window. Try a try/catch statement?
@@ -1745,59 +1755,57 @@ Class WindowProperties
 void WindowProperties::SetFlags()
 {
 
-GameOverFlag=CheckForNonSentinelCoords(GameOverWindowCoordinates);
-GweledScoresFlag=CheckForNonSentinelCoords(GweledScoresWindowCoordinates);
+  GameOverFlag=CheckForNonSentinelCoords(GameOverWindowCoordinates);
+  GweledScoresFlag=CheckForNonSentinelCoords(GweledScoresWindowCoordinates);
 
 }
 
 bool WindowProperties::CheckForNonSentinelCoords(XYPair C)
 {
-bool r;
-if (C.x==WINDOWCOORDSENTINEL && C.y==WINDOWCOORDSENTINEL) ? r=false : r=true;
-return r;
+  bool r;
+  r= (C.x==WINDOWCOORDSENTINEL && C.y==WINDOWCOORDSENTINEL) ? false : true;
+  return r;
 }
 
-WindowProperties::GetWindowPID(string C )
+string /*int*/ WindowProperties::GetWindowPID(string C )
 { 
-  //  string PID="x:";
   char temp[BUFFERLENGTH];
   FILE *in;
-  //  string command="xwininfo -name Gweled |  grep xwininfo | awk '{print $4}'";//"xwininfo -root -tree | grep gweled | grep ";
-  string command=C
+  string command=C;
 
-  if ((in = popen(command.c_str(),"r")))
-    { 
-      while (fgets(temp, sizeof(temp), in)!=NULL)
-	{ 
-	  //printf("%c",temp);//I think printing it out screws up the buffer so you can't print out and capture together
-	  PID.append(temp); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
-	}
-      pclose(in);
+    if ((in = popen(command.c_str(),"r")))
+      { 
+	while (fgets(temp, sizeof(temp), in)!=NULL)
+	  { 
+	    //printf("%c",temp);//I think printing it out screws up the buffer so you can't print out and capture together
+	    PID.append(temp); //http://www.linuxquestions.org/questions/programming-9/c-c-popen-launch-process-in-specific-directory-620305/#post3053479
+	  }
+	pclose(in);
 #if DEBUGPRINT_0 
-      std::cout<<PID<<std::endl;
+	std::cout<<PID<<std::endl;
 #endif
-      return PID.substr(0,PID.length()-1);
-    }
-  else
-    return "PHAIL";
+	return PID.substr(0,PID.length()-1);
+      }
+    else
+      return /*-99;/*/ "PHAIL";
 }
 
 WindowProperties::WindowProperties()
 {
-GweledScoresFlag=false;
-GameOverFlag=false
-GetWindowPID(GweledCommand);
+  GweledScoresFlag=false;
+  GameOverFlag=false;
+  GetWindowPID(GweledCommand);
 
-GetWindowOriginCoordinates();
-GetGweledScoresWindowOriginCoordinates();
-GetGameOverWindowOriginCoordinates();
+  GetWindowOriginCoordinates(GweledCommand); //not sure if GweledCommand is what I want to pass in
+  GetGweledScoresWindowOriginCoordinates();
+  GetGameOverWindowOriginCoordinates();
 }
 
 void WindowProperties::GetGameOverWindowOriginCoordinates()
 {
   string command=GameOverCommand;
   XYPair coords=GetWindowOriginCoordinates(command);
-  GameOverScoresWindowCoordinates= coords;
+  GameOverWindowCoordinates= coords;
 }
 
 
@@ -1844,10 +1852,10 @@ void WindowProperties::GetGameBoardOriginCoordinates()
 	  coords.y+=yoffset;
 	}
     }
-GameBoardOriginCoordinates= coords;
+  GameBoardOriginCoordinates= coords;
 }
 
-void WindowProperties::GetWindowOriginCoordinates(string command)
+XYPair WindowProperties::GetWindowOriginCoordinates(string command)
 {
   XYPair coords; coords.x=-1;coords.y=-1;
   char buffer[BUFFERLENGTH];
@@ -1889,9 +1897,9 @@ void WindowProperties::GetWindowOriginCoordinates(string command)
 }
 
 #ifndef GAMEBOARDPROPERTIES_H
-#define
+#define GAMEBOARDPROPERTIES_H
 
-Class GameBoardProperties
+class GameBoardProperties
 {
  private: 
   int GameBoardCellSize;//length, height in pixels
@@ -1899,12 +1907,13 @@ Class GameBoardProperties
   void SetGameBoardCellSize();
   void GetGameBoardSize();
 
- public:
+public:
   int GetGameBoardCellSize();
-
+  GameBoardProperties();
 
 };
-#endif;
+#endif
+
 GameBoardProperties::GameBoardProperties()
 {
   GetGameBoardSize();
@@ -1981,7 +1990,7 @@ void GameBoardProperties::GetGameBoardSize()
   GameBoardSize = returnval;
 }
 
-Class GweledSolver 
+class GweledSolver 
 {
  private: 
   int GameBoardCellSize; 
@@ -1989,16 +1998,16 @@ Class GweledSolver
   XYPair screen_coords;
   XYPair GetGameBoardOriginCoordinates();//need to update this every loop in case board was moved.       
 
-int GetGameBoardSize();
-XYPair ConvertMoveToScreenCoordinates(XYPair,CoordPair,int,int);
-XYPair ConvertGameBoardToScreenCoordinates(XYPair,int,XYPair);
-XYPair GetCoords(CoordPair,int);
+  int GetGameBoardSize();
+  XYPair ConvertMoveToScreenCoordinates(XYPair,CoordPair,int,int);
+  XYPair ConvertGameBoardToScreenCoordinates(XYPair,int,XYPair);
+  XYPair GetCoords(CoordPair,int);
 
-XYPair GetGameOverWindowOriginCoordinates();
-XYPair GetGweledScoresWindowOriginCoordinates();
-XYPair GetWindowOriginCoordinates(string ); 
+  XYPair GetGameOverWindowOriginCoordinates();
+  XYPair GetGweledScoresWindowOriginCoordinates();
+  XYPair GetWindowOriginCoordinates(string ); 
 
-public:
+ public:
 
 
-}
+};
